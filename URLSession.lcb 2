@@ -1,0 +1,146 @@
+library org.openxtalk.urlsession
+
+use com.livecode.engine
+use com.livecode.foreign
+use com.livecode.objc
+-- use com.livecode.widget
+
+
+-- NSString --- probably don't need these:
+foreign handler ObjC_NSStringWithUTF8String(in pBytes as ZStringNative) returns ObjcId binds to "objc:NSString.+stringWithUTF8String:"
+
+foreign handler ObjC_NSStringUTF8String(in pString as ObjcId) returns ZStringNative binds to "objc:NSString.-UTF8String"
+
+-- NSURL Object Utility Methods
+foreign handler ObjC_NSURLWithString(in pString as ObjcId) returns ObjcId binds to "objc:NSURL.+URLWithString:"
+
+foreign handler ObjC_NSURLLastPathComponent(in pURL as ObjcId) returns ObjcId binds to "objc:NSURL.-lastPathComponent"
+
+foreign handler ObjC_NSURLByAppendingPathComponent(in pURL as ObjcId, in pComponent as ObjcId) returns ObjcId binds to "objc:NSURL.-URLByAppendingPathComponent:"
+
+foreign handler ObjC_NSURLPath(in pURL as ObjcId) returns ObjcId binds to "objc:NSURL.-path"
+
+-- NSURLSession
+foreign handler ObjC_SharedSession() returns ObjcId binds to "objc:NSURLSession.+sharedSession"
+
+foreign handler ObjC_DownloadTaskWithURL(in pSession as ObjcId, in pURL as ObjcId, in pBlock as ObjcBlockPointer) returns ObjcId binds to "objc:NSURLSession.-downloadTaskWithURL:completionHandler:"
+
+-- NSURLSessionTask
+foreign handler ObjC_TaskResume(in pTask as ObjcId) returns nothing binds to "objc:NSURLSessionTask.-resume"
+
+-- NSHTTPURLResponse
+foreign handler ObjC_IsKindOfClass(in pObject as ObjcId, in pClass as ObjcId) returns CBool binds to "objc:NSObject.-isKindOfClass:"
+
+foreign handler ObjC_NSHTTPURLResponseClass() returns ObjcId binds to "objc:NSHTTPURLResponse.+class"
+
+foreign handler ObjC_StatusCode(in pResponse as ObjcId) returns String binds to "objc:NSHTTPURLResponse.-statusCode"
+
+-- NSFileManager
+foreign handler ObjC_DefaultFileManager() returns ObjcId binds to "objc:NSFileManager.+defaultManager"
+
+foreign handler ObjC_URLsForDirectoryInDomains(in pManager as ObjcId, in pDirectory as CUint , in pDomains as String) returns ObjcId binds to "objc:NSFileManager.-URLsForDirectory:inDomains:"
+
+foreign handler ObjC_FileExistsAtPath(in pManager as ObjcId, in pPath as ObjcId) returns CBool binds to "objc:NSFileManager.-fileExistsAtPath:"
+
+foreign handler ObjC_RemoveItemAtURL(in pManager as ObjcId, in pURL as ObjcId, in pError as ObjcId) returns CBool binds to "objc:NSFileManager.-removeItemAtURL:error:"
+
+foreign handler ObjC_MoveItemAtURL(in pManager as ObjcId, in pSrc as ObjcId, in pDst as ObjcId, in pError as ObjcId) returns CBool binds to "objc:NSFileManager.-moveItemAtURL:toURL:error:"
+
+-- NSArray
+foreign handler ObjC_ArrayFirstObject(in pArray as ObjcId) returns ObjcId binds to "objc:NSArray.-firstObject"
+
+-- NSError
+foreign handler ObjC_LocalizedDescription(in pError as ObjcId) returns ObjcId binds to "objc:NSError.-localizedDescription"
+
+constant kNSDocumentDirectory is 9
+constant kNSUserDomainMask is 1
+
+-- Block and task retention
+private variable mTask as optional ObjcId
+private variable mBlock as optional ObjcBlockPointer
+
+-- Block handler type matching ^(NSURL *, NSURLResponse *, NSError *)
+handler type DownloadCompletionBlock(in pLocation as ObjcId, in pResponse as ObjcId, in pError as ObjcId) returns nothing
+
+private unsafe handler DownloadComplete(in pLocation as ObjcId, in pResponse as ObjcId, in pError as ObjcId) returns nothing
+   if pError is not nothing then
+      variable tErrorDesc as ObjcId
+      put ObjC_LocalizedDescription(pError) into tErrorDesc
+      post "urlDownloadFailed" -- to my script object with [tErrorDesc] --  'my script object' is NOT allowed for Library modules
+      return
+   end if
+
+   if not ObjC_IsKindOfClass(pResponse, ObjC_NSHTTPURLResponseClass()) then
+      post "urlDownloadFailed" --  to my script object with ["Unexpected response type"]
+      return
+   end if
+
+   variable tStatus as String
+   put ObjC_StatusCode(pResponse) into tStatus
+
+   if tStatus < 200 or tStatus >= 300 then
+      post "urlDownloadFailed" -- to my script object with ["HTTP status" && tStatus]
+      return
+   end if
+
+   variable tFileManager as ObjcId
+   put ObjC_DefaultFileManager() into tFileManager
+
+   variable tDocsURL as ObjcId
+   put ObjC_ArrayFirstObject( ObjC_URLsForDirectoryInDomains(tFileManager, kNSDocumentDirectory, kNSUserDomainMask)) into tDocsURL
+
+   variable tSavedURL as ObjcId
+   put ObjC_NSURLByAppendingPathComponent(tDocsURL, ObjC_NSURLLastPathComponent(pLocation)) into tSavedURL
+
+   if ObjC_FileExistsAtPath(tFileManager, ObjC_NSURLPath(tSavedURL)) then
+      ObjC_RemoveItemAtURL(tFileManager, tSavedURL, nothing)
+   end if
+
+   ObjC_MoveItemAtURL(tFileManager, pLocation, tSavedURL, nothing)
+
+   variable tSavedPath as String
+   put ObjC_NSStringUTF8String(ObjC_NSURLPath(tSavedURL)) into tSavedPath
+   post "urlDownloadFinished" -- to my script object with [tSavedPath]
+end handler
+
+variable sDownloadCompleteCallbackPtr as optional ObjcBlockPointer
+
+public unsafe handler DownloadFileFromURL(in pURL as String) returns nothing
+   variable tURL as ObjcId
+   variable rPointer as Pointer
+
+   put ObjC_NSURLWithString( StringToNSString(pURL) ) into tURL
+
+    CreateObjcBlockPointerFromHandler( DownloadComplete , sDownloadCompleteCallbackPtr)
+
+   put ObjC_DownloadTaskWithURL( ObjC_SharedSession(), tURL, sDownloadCompleteCallbackPtr ) into mTask
+   ObjC_TaskResume(mTask)
+end handler
+
+end library
+
+-- Callbacks Posted to Script Object
+-- urlDownloadFinished savedPath -- File moved to Documents successfully
+-- urlDownloadFailed errorDescription -- Any error — network, HTTP status, or response type
+
+/**
+EXAMPLE:
+DownloadFileFromURL "https://example.com/path/to/yourfile.zip"
+
+on urlDownloadFinished pPath
+   answer "Saved to:" && pPath
+end urlDownloadFinished
+
+on urlDownloadFailed pError
+   answer error pError
+end urlDownloadFailed
+
+**/
+
+-- The module is intentionally minimal 
+-- mTask and mBlock are module-level variables solely to keep both retained until the completion block fires, 
+-- after which they can be safely released by setting them to nothing inside DownloadComplete if desired.
+
+
+
+

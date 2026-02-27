@@ -1,0 +1,845 @@
+
+module org.openxtalk.xbuilderffi
+
+— A collection of OpenXTalk binding strings and Utility handlers
+
+— add string constants to xBuilder to make same as in xTscript
+constant tab is “\t”
+constant cr is “\n”
+
+-------------------- Objective C and Core Foundation Declarations -------------------------------
+
+public foreign type CGSize binds to "MCAggregateTypeInfo:qq"
+public foreign type NSSize binds to "MCAggregateTypeInfo:qq"
+public foreign type CGPoint binds to "MCAggregateTypeInfo:qq"
+public foreign type CGRect binds to "MCAggregateTypeInfo:qqqq"
+public foreign type NSRect binds to "MCAggregateTypeInfo:qqqq"
+public foreign type CGImageRef binds to "MCAggregateTypeInfo:r"
+-- public type CGImageRef is Pointer
+public foreign type NSRange binds to "MCAggregateTypeInfo:ii"
+private type NSUInteger is CULong
+
+private variable sMyWindow as optional ObjcObject
+private variable sMyWindowController as optional ObjcObject
+private variable sViewController as optional ObjcObject
+private variable mNSView as optional ObjcObject
+private variable mPDFDocument as optional ObjcObject
+
+----------------------  NSObject ------------------------------------------------------------------------------
+private foreign handler objC_NSObjectRetain(in pNSObj as ObjcId) returns ObjcId binds to "objc:NSObject.-retain"
+private foreign handler objC_NSObjectAutoRealease(in pNSObj as ObjcId) returns ObjcId binds to "objc:NSObject.-autorelease"
+private foreign handler objC_NSObjectRelease(in pNSObj as ObjcId) returns nothing binds to "objc:NSObject.-release"
+
+private foreign handler objC_NSObjectGetDescription(in pNSObj as ObjcId) returns ObjcId binds to "objc:NSObject.description"
+private foreign handler objC_NSObjectDescription(in pNSObj as optional ObjcId) returns ObjcId binds to "objc:NSObject.description"
+private foreign handler objC_NSObjectClassDescription(in pNSObject as ObjcId) returns optional ObjcId binds to "objc:NSObject.-classDescription"
+private foreign handler ObjC_NSObjectGetAttributeKeys( in pNSObjct as ObjcId) returns optional ObjcId binds to "objc:NSObject.-attributeKeys"
+private foreign handler objC_NSObjectAttributeKeys(in pNSObject as ObjcId) returns optional ObjcId binds to "objc:NSObject.attributeKeys"
+
+private foreign handler objC_NSObjectClassName(in pNSObj as ObjcId) returns ObjcId binds to "objc:NSObject.className"
+private foreign handler ObjC_NSObjectGetClassNamed( in pNSClassName as ObjcId) returns optional ObjcId binds to "objc:NSObject.-classNamed:"
+public foreign handler objC_NSObjectsGetClassDescriptionForClass(in pClasss as ObjcId) returns optional ObjcRetainedId binds to "objc:NSClassDescription.+classDescriptionForClass:"
+-- private foreign handler objC_NSObjectGetSuperClass(in pNSObj as ObjcId) returns ObjcRetainedId binds to "c:NObject.+superclass:"
+-- private foreign handler objC_NSObjectGetSuperClass(in pNSObj as ObjcId) returns ObjcId binds to "objc:NSObject.superclass"
+private foreign handler objC_NSObjectGetSuperClass(in pNSObj as ObjcId) returns ObjcRetainedId binds to "c:NObject.+superclass:"
+private foreign handler ObjC_NSObjectIsKindOfClass(in pObject as ObjcId, in pClass as ObjcId) returns CBool binds to "objc:NSObject.-isKindOfClass:"
+
+private foreign handler objC_NSObjectSetValueForKey(in pAVAUSampler as ObjcId, in pValue as ObjcId, in pSelector as ObjcId) returns optional ObjcId binds to "objc:NSObject.-setValue:forKey:"
+private foreign handler objC_NSObjectGetValueForKey(in pNSObject as ObjcId, in pSelector as ObjcId) returns optional ObjcId binds to "objc:NSObject.-valueForKey:"
+
+----------------------------------------------------------------------------- NSError --------------------------------------------------------------------------
+private foreign handler objC_NSErrorAlloc() returns ObjcRetainedId binds to "objc:NSError.+alloc"
+-- private foreign handler objC_NSErrorAlloc() returns ObjcId binds to "objc:NSError.+alloc"
+
+------------------------------------------------------------ NSArray / NSMutableArray --------------------------------------------------------------------------
+private foreign handler objC_NSArrayAlloc() returns ObjcRetainedId binds to "objc:NSArray.+alloc"
+private foreign handler objC_NSArrayComponentsJoinedByString(in pObj as ObjcId, in pSeperator as ObjcId) returns ObjcId binds to "objc:NSArray.-componentsJoinedByString:"
+private foreign handler ObjC_NSArrayFirstObject(in pArray as ObjcId) returns ObjcId binds to "objc:NSArray.-firstObject"
+
+private foreign handler objC_NSMutableArrayAlloc() returns ObjcRetainedId binds to "objc:NSMutableArray.+alloc"
+private foreign handler objC_NSMutableArrayInitWithCapacity(in pNSMutableArray as ObjcId, in pCapacity as NaturalFloat) returns ObjcId binds to "objc:NSMutableArray.-initWithCapacity:"
+private foreign handler objC_NSMutableArrayInitWithNSArray(in pNSMutableArray as ObjcId, in pNSArray as ObjcId) returns ObjcId binds to "objc:NSMutableArray.-initWithArray:"
+private foreign handler objC_NSArrayCount(in pNSArray as ObjcId) returns LCUInt binds to "objc:NSArray.count"
+
+-- private foreign handler objC_NSRangeMakeRange( in pStart as CUint, in pLegth as CUint)) returns ObjcId binds to "c:NSMakeRange" -- NSMakeRange(0,100)
+public foreign handler ObjC_NSPredicateWithFormat(in pFormatNSString as ObjcId) returns ObjcId binds to "objc:NSPredicate.+predicateWithFormat:"
+
+----------------------------------------------------------------- NSData / NSMutableData  ------------------------------------------------------------
+-- + (instancetype)imageRepWithData:(NSData *)data;
+-- https://developer.apple.com/documentation/appkit/nsbitmapimagerep/1395502-imagerepwithdata?language=objc
+public foreign handler ObjC_NSDataAlloc() returns ObjcRetainedId binds to "objc:NSData.+alloc"
+private foreign handler objC_NSDataGetLength(in pMutableDataRef as ObjcId) returns ObjCId binds to "objc:NSData.length"
+private foreign handler objC_NSDataBytesPtr(inout pMutableDataRef as ObjcId) returns Pointer binds to "objc:NSData.bytes"
+private foreign handler objC_NSDataWithBytes(in pDataRef as ObjcId, in pReadLengthNSNum as ObjcId ) returns ObjcId binds to "objc:NSData.+dataWithBytes:length:"
+private foreign handler objC_NSMutableDataWithLength(in pDataLength as CUInt) returns ObjcId binds to "objc:NSMutableData.+dataWithLength:" -- Creates and returns an mutable data object containing a given number of zeroed bytes. Toll free bridges to CFMutableDataRef for Foundation C APIs
+private foreign handler objC_NSMutableDataWithCapacity(in pDataLength as CUInt) returns ObjcId binds to "objc:NSMutableData.+dataWithCapacity:"
+private foreign handler objC_NSMutableDataSetData(in pMutableDataRef as ObjcId, in pNSDataToSet as ObjcId) returns nothing binds to "objc:NSMutableData.-setData:"
+private foreign handler objC_NSMutableDataBytesPtr(in pMutableDataRef as ObjcId) returns Pointer binds to "objc:NSMutableData.mutableBytes"
+private foreign handler objC_NSMutableDataWithBytes(in pRawDataPointer as Pointer, in pDataLength as ObjcId) returns ObjcId binds to "objc:NSMutableData.+dataWithBytes:length:"
+private foreign handler objC_NSMutableDataWithBytesNoCopy(in pDataRef as ObjcId, in pReadLengthNSNum as ObjcId ) returns ObjcId binds to "objc:NSMutableData.+dataWithBytesNoCopy:length:"
+private foreign handler objC_NSMutableDataWithBytesNoCopyFreeWhenDone(in pDataRef as ObjcId, in pReadLengthNSNum as ObjcId, in pFreeWhenDone as CBool) returns ObjcId binds to "objc:NSMutableData.+dataWithBytesNoCopy:length:freeWhenDone:"
+
+__safe foreign handler PointerToPropsList(out rAggregate as ClassPropertiesList, in pPointer as Pointer, in pSize as UIntSize) returns nothing binds to "c:memcpy"
+-- PointerToPropsList(PropsList,rOutArrayPtr,8)
+
+------------------------ NSBundle
+private foreign handler ObjC_NSBundleWithURL(in pNSURL as ObjcId) returns ObjcId binds to "objc:NSBundle.+bundleWithURL:"
+private foreign handler ObjC_NSBundleGetClassNamed(in pNSbundle as ObjcId,in pClassNameNSString as ObjcId) returns ObjcId binds to "objc:NSBundle.-classNamed:"
+
+----------------------- NSNotification
+private foreign handler ObjC_NSNotificationCenter() returns ObjcId binds to "objc:NSNotificationCenter.+defaultCenter"
+private foreign handler ObjC_NSNotificationGetName(in pNotification as ObjcId) returns ObjcId binds to "objc:NSNotification.name"
+private foreign handler ObjC_NSNotificationCenterAddObserverForSelector( in pNotificationCenter as ObjcId, in pObserver as ObjcId, in pSelectorNSStr as optional ObjcId, \
+                                          in pNameNSStr as optional ObjcId, in pSender as optional ObjcId) returns ObjcId binds to "objc:NSNotificationCenter.-addObserver:selector:name:object:"
+private foreign handler ObjC_NSNotificationCenterAddObserverForNameUsingBlock( in pNotificationCenter as ObjcId, in pObserverForNameNSStr as optional ObjcId, in pObject as optional ObjcId, \
+                                          in pQueue as optional ObjcId, in pBlock as ObjcBlockPointer) returns ObjcId binds to "objc:NSNotificationCenter.-addObserverForName:object:queue:usingBlock:"
+----------------------- NSApplication ------------------------------------------------------------------------------
+private foreign handler ObjC_NSApplicationSharedApplication() returns ObjcId binds to "objc:NSApplication.+sharedApplication"
+private foreign handler ObjC_NSAppWindowWithWindowNumber(in pObj as ObjcId, in pWindowNumber as CLong) returns ObjcId binds to "objc:NSApplication.-windowWithWindowNumber:"
+private foreign handler ObjC_NSApplicationGetTargetForAction(in pNSApp as ObjcId, in pSelectorNSStr as ObjcId ) returns ObjcId binds to "objc:NSApplication.-targetForAction:"
+-- Returns the object that receives the action message specified by the given selector.
+private foreign handler objC_NSApplicationGetMainMenu(in sharedApplication as ObjcId) returns optional ObjcId binds to "objc:NSApplication.mainMenu"
+private foreign handler objC_NSApplicationGetWindowsMenu(in pSharedApplication as ObjcId) returns optional ObjcId binds to "objc:NSApplication.windowsMenu"
+private foreign handler objC_NSApplicationSetWindowsMenu(in pSharedApplication as ObjcId, in pNSmenu as ObjcId) returns nothing binds to "objc:NSApplication.-setWindowsMenu:"
+private foreign handler objC_NSApplicationRequestUserAttention(in sharedApplication as ObjcId, in requestType as CLong) returns CLong binds to "objc:NSApplication.-requestUserAttention:"
+private foreign handler objC_NSApplicationMiniaturizeAll( in sharedApplication as optional ObjcId, in pSenderID as optional any) returns nothing binds to "objc:NSApplication.-miniaturizeAll:"
+private foreign handler objC_NSApplicationHide ( in sharedApplication as ObjcId, in pSenderID as optional any) returns nothing binds to "objc:NSApplication.-hide:"
+private foreign handler objC_NSApplicationUnhide ( in sharedApplication as ObjcId, in pSenderID as optional any) returns nothing binds to "objc:NSApplication.-unhide:"
+private foreign handler objC_NSApplicationWindowWithWindowNumber(in pSharedApplication as ObjcId, in pWindowNumber as CLong) returns ObjcId binds to "objc:NSApplication.-windowWithWindowNumber:"
+private foreign handler objC_NSApplicationGetNSDockTile(in sharedApplication as ObjcId) returns ObjcId binds to "objc:NSApplication.-dockTile"
+private foreign handler objC_NSApplicationSetAppearance(in pNSApp as ObjcId, in pAppearanceNameNSStr as ObjcId) returns nothing binds to "objc:NSApplication.-setAppearance:"
+private foreign handler objC_NSApplicationGetAutoWindowTabbing(in pNSApp as ObjcId) returns optional any binds to "objc:NSApplication.-allowsAutomaticWindowTabbing:"
+private foreign handler objC_NSApplicationSetAutoWindowTabbing(in pNSApp as ObjcId, in pAllow as CBool) returns nothing binds to "objc:NSApplication.-setAllowsAutomaticWindowTabbing:"
+private foreign handler objC_NSApplicationSetAppIconImage(in pNSApp as ObjcId, in pNSImage as optional ObjcId) returns nothing binds to "objc:NSApplication.-setApplicationIconImage:"
+
+------------------------ NSURL ------------------------------------------------------------------------------
+private foreign handler objC_NSURLURLWithString(in pURLString as ObjcId) returns ObjcId binds to "objc:NSURL.+URLWithString:"
+private foreign handler objC_NSURLfileOrDirURLWithPath(in pPathString as ObjcId, in pIsDir as CBool) returns ObjcId binds to "objc:.NSURL.+fileURLWithPath:isDirectory:"
+private foreign handler objC_NSURLfileURLWithPath(in pPathString as ObjcId) returns ObjcId binds to "objc:NSURL.+fileURLWithPath:"
+private foreign handler objC_NSURLGetAbsoluteString(in pURLString as ObjcId) returns ObjcId binds to "objc:NSURL.absoluteString"
+private foreign handler objC_NSURLGetPath(in pURLString as ObjcId) returns ObjcId binds to "objc:NSURL.path"
+private foreign handler ObjC_NSURLPath(in pURL as ObjcId) returns ObjcId binds to "objc:NSURL.-path"
+private foreign handler ObjC_NSURLLastPathComponent(in pURL as ObjcId) returns ObjcId binds to "objc:NSURL.-lastPathComponent"
+private foreign handler ObjC_NSURLByAppendingPathComponent(in pURL as ObjcId, in pComponent as ObjcId) returns ObjcId binds to "objc:NSURL.-URLByAppendingPathComponent:"
+
+------------------------  NSMenu
+private foreign handler ObjC_NSMenuAlloc() returns ObjcRetainedId binds to "objc:NSMenu.+alloc"
+private foreign handler ObjC_NSMenuInitWithTitle(in pNSMenu as ObjcId, in pTitle as ObjcId) returns ObjcId binds to "objc:NSMenu.-initWithTitle:"
+private foreign handler ObjC_NSMenuAddItem(in pNSMenu as ObjcId, in pItem as ObjcId) returns nothing binds to "objc:NSMenu.-addItem:"
+private foreign handler ObjC_NSMenuNumberOfItems(in pNSMenu as ObjcId) returns CInt binds to "objc:NSMenu.numberOfItems"
+private foreign handler ObjC_NSMenuNumberOfItemsNSobj(in pNSMenu as ObjcId) returns ObjcId binds to "objc:NSMenu.numberOfItems"
+private foreign handler ObjC_NSMenuUpdate(in pNSMenuItem as ObjcId) returns nothing binds to "objc:NSMenu.-update"
+private foreign handler ObjC_NSMenuItemWithTitle(in pNSMenu as ObjcId, in pMenuItemNameNSStr as ObjcId) returns ObjcId binds to "objc:NSMenu.-itemWithTitle:"
+
+-----------------------  NSMenuItem
+private foreign handler ObjC_NSMenuItemAlloc() returns ObjcRetainedId binds to "objc:NSMenuItem.+alloc"
+private foreign handler ObjC_NSMenuItemInitWithTitle(in pNSMenuItem as ObjcId, in pTitle as ObjcId, in pAction as optional ObjcId, in pKeyEquivalent as ObjcId) returns ObjcId binds to "objc:NSMenuItem.-initWithTitle:action:keyEquivalent:"
+private foreign handler ObjC_NSMenuItemSetTarget(in pNSMenuItem as ObjcId, in pTargetObjId as ObjcId) returns nothing binds to "objc:NSMenuItem.-setTarget:"
+
+private foreign handler ObjC_NSMenuItemGetSubmenu(in pNSMenuItem as ObjcId) returns optional ObjcId binds to "objc:NSMenuItem.submenu"
+private foreign handler ObjC_NSMenuItemHasSubmenu(in pNSMenuItem as ObjcId) returns CBool binds to "objc:NSMenuItem.hasSubmenu"
+
+----------------------- NSimage
+private foreign handler ObjC_NSImageAlloc() returns ObjcRetainedId binds to "objc:NSImage.+alloc"
+private foreign handler ObjC_NSImageInit(in pObj as ObjcRetainedId) returns ObjcId binds to "objc:NSImage.-init"
+private foreign handler ObjC_NSImageInitWithData(in pObj as ObjcRetainedId, in pData as ObjcId) returns optional ObjcRetainedId binds to "objc:NSImage.-initWithData:"
+-- private foreign handler ObjC_NSImageInitWithContentsOfFile(in pObj as ObjcRetainedId, in pFilename as ObjcId) returns optional ObjcRetainedId binds to "objc:NSImage.-initWithContentsOfFile:"
+private foreign handler ObjC_NSImageInitWithContentsOfFile(in pObj as ObjcId, in pFilename as ObjcId) returns ObjcId binds to "objc:NSImage.-initWithContentsOfFile:"
+private foreign handler objC_NSImageInitFromFile(in pPathNSString as ObjcId) returns ObjcId binds to "objc:NSImage.-initWithContentsOfFile:" -- correct!!!
+private foreign handler ObjC_NSImageSetTemplate(in pObj as ObjcId, in pTemplate as CBool) returns nothing binds to "objc:NSImage.-setTemplate:"
+
+----------------------- NSProcess
+private foreign handler objC_NSProcessInfoAlloc() returns ObjcRetainedId binds to "objc:NSProcessInfo.+alloc"
+private foreign handler objC_NSProcessInfoInit(in pInstance as ObjcId) returns ObjcId binds to "objc:NSProcessInfo.-init"
+
+----------------------- NSDockTile
+private foreign handler objC_NSDockTileSetBadgeLabelProp(in pNSDockTile as ObjcId, in pNSString as ObjcId, in pSelectorNSString as ObjcId ) returns nothing binds to "objc:NSDockTile.-setValue:forKey:"
+private foreign handler objC_NSDockTileSetShowAppBadge(in pNSDockTile as ObjcId, in pValue as cBool, in pSelectorNSString as ObjcId) returns nothing binds to "objc:NSDockTile.-setValue:forKey:"
+private foreign handler objC_NSDockTileDisplay(in pNSDockTile as ObjcId) returns nothing binds to "objc:NSDockTile.-display"
+
+----------------------- NSUserNotificationA
+private foreign handler objC_NSUserNotificationCenterDefaultUserNotificationCenter() returns ObjcId binds to "objc:NSUserNotificationCenter.+defaultUserNotificationCenter"
+private foreign handler objC_NSUserNotificationAlloc() returns ObjcRetainedId binds to "objc:NSUserNotification.+alloc"
+private foreign handler objC_NSUserNotificationInit(in anInstance as ObjcId) returns ObjcId binds to "objc:NSUserNotification.-init"
+private foreign handler objC_NSUserNotificationSetProperty(in Obj as ObjcId, in pValue as ObjcId, in pProp as ObjcId) returns nothing binds to "objc:NSUserNotification.-setValue:forKey:"
+private foreign handler objC_NSUserNotificationCenterDeliverNotification(in defaultUserNotificationCenter as ObjcId, in aNotificationInstance as ObjcId) returns nothing binds to "objc:NSUserNotificationCenter.-deliverNotification:"
+
+----------------------  NSDistributedNotificationCenter
+private foreign handler objC_NSDistributedNotificationCenterDefaultCenter() returns ObjcId binds to "objc:NSDistributedNotificationCenter.+defaultCenter"
+private foreign handler objC_NSDistributedNotificationCenterPostNotificationNameObject(in defaultCenter as ObjcId, in notificationName as ObjcId, in notificationObject as ObjcId) returns nothing binds to "objc:NSDistributedNotificationCenter.-postNotificationName:object:"
+
+----------------------  NSFileManagerSharedManager
+private foreign handler objC_NSFileManagerSharedManager() returns ObjcId binds to "objc:NSFileManager.+defaultManager"
+private foreign handler ObjC_NSFileManagerDefaultFileManager() returns ObjcId binds to "objc:NSFileManager.+defaultManager"
+private foreign handler objC_NSFileManagerCurrentUserHomeURL(in pNSSharedFilemanager as ObjcId) returns ObjcId binds to "objc:NSFileManager.homeDirectoryForCurrentUser"
+private foreign handler objC_NSFileManagerAttributesOfItemAtPath(in pNSSharedFilemanager as ObjcId, in pPathNSString as ObjcId, inout pNSError as optional ObjcId ) returns optional ObjcId binds to "objc:NSFileManager.-attributesOfItemAtPath:error:"
+private foreign handler objC_NSFileManagerSetAttributesOfItemAtPath(in pNSSharedFilemanager as ObjcId, in pAtributesNSDict as ObjcId, in pPathNSString as ObjcId, inout pNSError as optional ObjcId ) returns cBool binds to "objc:NSFileManager.-setAttributes:ofItemAtPath:error:"
+private foreign handler objC_NSFileHandleFileHandleForWritingAtWithPath(in pPathString as ObjcId) returns optional ObjcId binds to "objc:.NSFileHandle:+fileHandleForWritingAtPath:"
+private foreign handler ObjC_NSFileManagerURLsForDirectoryInDomains(in pManager as ObjcId, in pDirectory as CUint , in pDomains as String) returns ObjcId binds to "objc:NSFileManager.-URLsForDirectory:inDomains:"
+private foreign handler ObjC_NSFileManagerFileExistsAtPath(in pManager as ObjcId, in pPath as ObjcId) returns CBool binds to "objc:NSFileManager.-fileExistsAtPath:"
+private foreign handler ObjC_NSFileManagerRemoveItemAtURL(in pManager as ObjcId, in pURL as ObjcId, in pError as ObjcId) returns CBool binds to "objc:NSFileManager.-removeItemAtURL:error:"
+private foreign handler ObjC_NSFileManagerMoveItemAtURL(in pManager as ObjcId, in pSrc as ObjcId, in pDst as ObjcId, in pError as ObjcId) returns CBool binds to "objc:NSFileManager.-moveItemAtURL:toURL:error:"
+
+-----------------------  NSWorkspace stuff
+private foreign handler ObjC_NSWorkspaceSharedWorkspace() returns ObjcId binds to "objc:NSWorkspace.+sharedWorkspace"
+private foreign handler ObjC_NSWorkspaceSelectFile(in pSharedWorkspace as ObjcId, in pFilename as ObjcId, in pRootedAtPath as ObjcId) returns CBool binds to "objc:NSWorkspace.-selectFile:inFileViewerRootedAtPath:"
+private foreign handler ObjC_NSWorkspaceIsFilePackageAtPath(in pSharedWorkspace as ObjcId, in pFilename as ObjcId) returns CBool binds to "objc:NSWorkspace.-isFilePackageAtPath:"
+private foreign handler ObjC_NSWorkspaceRunningApplications(in pSharedWorkspace as ObjcId) returns ObjcId binds to "objc:NSWorkspace.-runningApplications"
+private foreign handler ObjC_NSWorkspaceLaunchApplication(in pSharedWorkspace as ObjcId, in pApf as ObjcId) returns CBool binds to "objc:NSWorkspace.launchApplication:"
+private foreign handler ObjC_NSWorkspaceFrontmostApplication(in pSharedWorkspace as ObjcId) returns ObjcId binds to "objc:NSWorkspace.-frontmostApplication"
+private foreign handler ObjC_NSWorkspaceURLForAppBundleID(in pSharedWorkspace as ObjcId, in pBundleID as ObjcId ) returns ObjcId binds to "objc:NSWorkspace.-URLForApplicationWithBundleIdentifier:"
+private foreign handler ObjC_NSWorkspaceIconForFile(in pSharedWorkspace as ObjcId, in pFilename as ObjcId) returns optional ObjcId binds to "objc:NSWorkspace.-iconForFile:"
+private foreign handler ObjC_NSWorkspaceIconForContentType(in pSharedWorkspace as ObjcId, in pUTType as ObjcId) returns optional ObjcId binds to "objc:NSWorkspace.-iconForContentType:"
+private foreign handler ObjC_NSWorkspaceSetIconForFile(in pSharedWorkspace as ObjcId, in tNSImage as optional ObjcId, in pFilename as ObjcId, in pOption as CUInt ) returns CBool binds to "objc:NSWorkspace.-setIcon:forFile:options:"
+
+----------------------  NSAppleScript
+private foreign handler objC_NSAppleScriptAlloc() returns ObjcRetainedId binds to "objc:NSAppleScript.+alloc"
+private foreign handler objC_NSAppleScriptInitWithSource( in pNSAppleScript as ObjcId, in pNSStringAppleScript as ObjcId) returns ObjcId binds to "objc:NSAppleScript.-initWithSource:"
+private foreign handler objC_NSAppleScriptCompileAndReturnError( in pNSAppleScript as ObjcId, inout rErrorNSDict as optional ObjcId) returns CBool binds to "objc:NSAppleScript.-compileAndReturnError:"
+private foreign handler objC_NSAppleScriptExecuteAndReturnError( in pNSAppleScript as ObjcId, inout rErrorNSDict as optional ObjcId) returns CBool binds to "objc:NSAppleScript.-executeAndReturnError:"
+private foreign handler objC_NSAppleScriptGetRichTextSource( in pNSAppleScript as ObjcId) returns optional ObjcId binds to "objc:NSAppleScript.richTextSource"
+
+----------------------- NSWorkspaceSharedWorkspace
+private foreign handler ObjC_NSWorkspaceSharedWorkspace() returns ObjcId binds to "objc:NSWorkspace.+sharedWorkspace"
+private foreign handler ObjC_NSWorkspaceSelectFile(in pSharedWorkspace as ObjcId, in pFilename as ObjcId, in pRootedAtPath as ObjcId) returns CBool binds to "objc:NSWorkspace.-selectFile:inFileViewerRootedAtPath:"
+private foreign handler ObjC_NSWorkspaceIsFilePackageAtPath(in pSharedWorkspace as ObjcId, in pFilename as ObjcId) returns CBool binds to "objc:NSWorkspace.-isFilePackageAtPath:"
+private foreign handler ObjC_NSWorkspaceRunningApplications(in pSharedWorkspace as ObjcId) returns ObjcId binds to "objc:NSWorkspace.-runningApplications"
+private foreign handler ObjC_NSWorkspaceLaunchApplication(in pSharedWorkspace as ObjcId, in pAppName as ObjcId) returns CBool binds to "objc:NSWorkspace.launchApplication:"
+private foreign handler ObjC_NSWorkspaceFrontmostApplication(in pSharedWorkspace as ObjcId) returns ObjcId binds to "objc:NSWorkspace.-frontmostApplication"
+private foreign handler ObjC_NSWorkspaceURLForAppBundleID(in pSharedWorkspace as ObjcId, in pBundleID as ObjcId ) returns ObjcId binds to "objc:NSWorkspace.-URLForApplicationWithBundleIdentifier:"
+
+-----------------------  NSRunningApplication
+private foreign handler ObjC_NSRunningApplicationBundleIdentifier(in pObj as ObjcId) returns optional ObjcId binds to "objc:NSRunningApplication.-bundleIdentifier"
+private foreign handler ObjC_NSRunningApplicationProcessIdentifier(in pObj as ObjcId) returns CInt binds to "objc:NSRunningApplication.-processIdentifier"
+
+-----------------------  NSAttributedString
+private foreign handler objC_NSAttributedStringLength(in pNSAttributedString as ObjcId) returns CUint binds to "objc:NSAttributedString.length"
+private foreign handler objC_NSAttributedStringString(in pNSAttributedString as ObjcId) returns ObjcId binds to "objc:NSAttributedString.string"
+
+----------------------------------------------------  NSWIndow stuff ----------------------------------------------------
+
+public variable sMyWindow as optional ObjcId
+public variable sMyView as optional ObjcId
+public variable sMyWindowController as optional ObjcId
+public variable sAUViewController as optional ObjcId
+
+private foreign handler ObjC_NSWindowAlloc() returns ObjcRetainedId binds to "objc:NSWindow.+alloc"
+private foreign handler ObjC_NSWindowDealloc(in pNSWindow as ObjcId) returns nothing binds to "objc:NSWindow.-dealloc"
+
+private foreign handler ObjC_NSWindowInitWithRectStyleBackingDefer(in pObj as ObjcRetainedId, in pRect as NSRect, in pStyleMask as CLong, in pBackingStoreType as CLong, in pDefer as CBool) \
+                   returns ObjcId binds to "objc:NSWindow.-initWithContentRect:styleMask:backing:defer:"
+--private foreign handler ObjC_NSWindowInitWithRectStyleBackingDefer(in pObj as ObjcRetainedId, in pRect as NSRect, in pStyleMask as CLong, in pBackingStoreType as CLong, in pDefer as CBool) returns ObjcId binds to "objc:NSWindow.-initWithContentRect:styleMask:backing:defer:"
+
+private foreign handler ObjC_NSWindowGetWindowController(in pNSWindow as ObjcId) returns ObjcId binds to "objc:NSWindow.-windowController"
+private foreign handler ObjC_NSWindowGetRootViewController(in pNSWindow as ObjcId) returns ObjcId binds to "objc:NSWindow.rootViewController"
+
+private foreign handler ObjC_NSWindowCreateWithViewController(in pNSViewController as ObjcId) returns ObjcRetainedId binds to "objc:NSWindow.+windowWithContentViewController:"
+private foreign handler ObjC_NSWindowSetContentView(in pNSWindow as ObjcId, in pNSView as ObjcId) returns nothing binds to "objc:NSWindow.-setContentView:"
+
+private foreign handler ObjC_NSWindowGetContentViewController(in pNSWindow as ObjcId) returns ObjcId binds to "objc:NSWindow.-contentViewController"
+private foreign handler ObjC_NSWindowSetContentViewController(in pNSWindow as ObjcId, in pViewController as ObjcId) returns nothing binds to "objc:NSWindow.-setContentViewController:"
+
+private foreign handler ObjC_NSWindowGetFrameRect(in pNSWindow as ObjcId) returns NSRect binds to "objc:NSWindow.frame"
+
+private foreign handler ObjC_NSWindowSetTitleVisibility(in pNSWindow as ObjcId, in pVisibleUnum as ObjcId) returns nothing binds to "objc:NSWindow.-setTitleVisibility:"
+private foreign handler ObjC_NSWindowSetTitle(in pNSWindow as ObjcId, in pTitleNSStr as ObjcId) returns nothing binds to "objc:NSWindow.-setTitle:"
+
+private foreign handler ObjC_NSWindowGetStyleMask(in pNSWindow as ObjcId) returns CLong binds to "objc:NSWindow.-styleMask"
+private foreign handler ObjC_NSWindowSetStyleMask(in pNSWindow as ObjcId, in pOptions as CInt) returns nothing binds to "objc:NSWindow.-setStyleMask:"
+
+private foreign handler ObjC_NSWindowSetLevel(in pNSWindow as ObjcId, in pLevel as CInt) returns nothing binds to "objc:NSWindow.-setLevel:"
+private foreign handler ObjC_NSWindowGetLevel(in pNSWindow as ObjcId) returns CInt binds to "objc:NSWindow.-level"
+
+private foreign handler ObjC_NSWindowGetReleasedWhenClosed(in pNSWindow as ObjcId) returns CBool binds to "objc:NSWindow.isReleasedWhenClosed"
+
+private foreign handler ObjC_NSWindowSetValueForKey( in pNSWindow as ObjcId, in pValue as ObjcRetainedId, in pSelector as ObjcId) returns nothing binds to "objc:NSWindow.-setValue:forKey:"
+private foreign handler ObjC_NSWindowGetValueForKey( in pNSWindow as ObjcId, in pSelector as ObjcId) returns optional ObjcId binds to "objc:NSWindow.-valueforKey:"
+private foreign handler ObjC_NSWindowSIntValueForKey( in pNSWindow as ObjcId, in pValue as CSInt, in pSelector as ObjcId) returns nothing binds to "objc:NSWindow.-setValue:forKey:"
+private foreign handler ObjC_NSWindowUIntValueForKey( in pNSWindow as ObjcId, in pValue as CUInt, in pSelector as ObjcId) returns nothing binds to "objc:NSWindow.-setValue:forKey:"
+private foreign handler ObjC_NSWindowSetBoolValueForKey( in pNSWindow as ObjcId, in pValue as CBool, in pSelector as ObjcId) returns nothing binds to "objc:NSWindow.-setValue:forKey:"
+private foreign handler ObjC_NSWindowGetBoolValueForKey( in pNSWindow as ObjcId, in pSelector as ObjcId) returns CBool binds to "objc:NSWindow.-valueForKey:"
+
+-- private foreign handler ObjC_NSWindowSetTitlebarTransparent(in pObj as ObjcId, in pBool as CBool) returns nothing binds to "objc:NSWindow.titlebarAppearsTransparent"
+private foreign handler ObjC_NSWindowSetAppearance(in pNSWindow as ObjcId, in pAppearanceNameNSStr as ObjcId) returns nothing binds to "objc:NSWindow.-setAppearance:"
+-- private foreign handler ObjC_NSWindowGetAppearance(in pNSWindow as ObjcId, in pAppearanceNameNSStr as ObjcId) returns ObjcId binds to "objc:NSWindow.-appearance:"
+
+private foreign handler ObjC_NSWindowPerformMiniaturize(in pNSWindow as ObjcId, in pSenderID as optional any) returns nothing binds to "objc:NSWindow.-performMiniaturize:" -- (void)performMiniaturize:(id)sender;
+private foreign handler ObjC_NSWindowDeminiaturize(in pNSWindow as ObjcId, in pSenderID as ObjcId) returns nothing binds to "objc:NSWindow.-deminiaturize:"
+private foreign handler ObjC_NSWindowIsMiniaturized(in pNSWindow as ObjcId) returns CBool binds to "objc:NSWindow.isMiniaturized"
+
+private foreign handler ObjC_NSWindowSetCollectionBehavior(in pNSWindow as ObjcId, in collectionBehavior as CLong) returns nothing binds to "objc:NSWindow.-setCollectionBehavior:"
+private foreign handler ObjC_NSWindowGetCollectionBehavior(in pNSWindow as ObjcId) returns CLong binds to "objc:NSWindow.-collectionBehavior"
+
+private foreign handler ObjC_NSWindowToggleFullScreen(in pNSWindow as optional ObjcId, in pSenderID as optional any) returns nothing binds to "objc:NSWindow.-toggleFullScreen:"
+
+private foreign handler ObjC_NSWindowAddTabbedWindow(in pNSWindow as ObjcId, in tSender as optional ObjcId, in pNSWindowOrderingMode as CUInt ) returns nothing binds to "objc:NSWindow.-addTabbedWindow:ordered:"
+private foreign handler ObjC_NSWindowTabbingModeInt(in pNSWindow as ObjcId, in pNSStringMode as CUInt) returns nothing binds to "objc:NSWindow.-setTabbingMode:"
+private foreign handler ObjC_NSWindowAllowsAutoTabbing(in pNSWindow as ObjcId) returns optional CBool binds to "objc:NSWindow.-allowsAutomaticWindowTabbing:"
+private foreign handler ObjC_NSWindowSetTabbingModeNSObj(in pNSWindow as ObjcId, in pNSStringMode as ObjcId) returns nothing binds to "objc:NSWindow.-setTabbingMode:"
+private foreign handler ObjC_NSWindowToggleTabBar(in pNSWindow as ObjcId, in pSenderID as optional ObjcId) returns nothing binds to "objc:NSWindow.-toggleTabBar:"
+private foreign handler ObjC_NSWindowToggleTabOverview(in pNSWindow as ObjcId, in pSenderID as ObjcId) returns nothing binds to "objc:NSWindow.-toggleTabOverview:"
+private foreign handler objC_NSWindowMergeWindows( in pNSWindow as ObjcId, in pSenderNSObj as optional ObjcId ) returns nothing binds to "objc:NSWindow.mergeAllWindows:"
+private foreign handler objC_NSWindowMergeAllWindows(in pNSWindow as ObjcId, in pSenderID as optional ObjcId ) returns nothing binds to "objc:NSWindow.-mergeAllWindows:"
+
+----------------------- NSWindowController ------------------------------------------------------------------------------
+private foreign handler ObjC_NSWindowControllerAlloc() returns ObjcRetainedId binds to "objc:NSWindowController.+alloc"
+private foreign handler ObjC_NSWindowControllerDealloc(in pNSWindowController as ObjcId) returns nothing binds to "objc:NSWindowController.-dealloc"
+private foreign handler ObjC_NSWindowControllerInitWithWindow(in pNSWindowController as ObjcRetainedId,in pNSWindow as ObjcRetainedId) returns ObjcId binds to "objc:NSWindowController.-initWithWindow:"
+--private foreign handler ObjC_NSWindowControllerInitWithWindow(in pObj as ObjcId,in pNSWindow as ObjcId) returns ObjcId binds to "objc:NSWindowController.-initWithWindow:"
+private foreign handler ObjC_NSWindowControllerShowWindow(in pNSWindowController as ObjcId,in pNSWindow as ObjcId) returns nothing binds to "objc:NSWindowController.-showWindow:"
+private foreign handler ObjC_NSWindowControllerClose(in pNSWindowController as ObjcId) returns nothing binds to "objc:NSWindowController.-close"
+private foreign handler ObjC_NSWindowControllerLoadWindow(in pNSWindowController as ObjcId) returns nothing binds to "objc:NSWindowController.-LoadWindow"
+
+------------------------ NSViewController ------------------------------------------------------------------------------
+private foreign handler ObjC_NSViewControllerAlloc() returns ObjcRetainedId binds to "objc:NSViewController.+alloc"
+private foreign handler ObjC_NSViewControllerDealloc(in pObj as ObjcId) returns nothing binds to "objc:NSViewController.-dealloc"
+
+----------------------  NSWindowTabGroup
+-- private foreign handler ObjC_NSWindowTabGroupAlloc() returns ObjcRetainedId binds to "objc:NSWindowTabGroup.+alloc"
+private foreign handler ObjC_NSWindowTabGroupInit(in pNSWindow as ObjcRetainedId) returns optional ObjcId binds to "objc:NSWindow.-tabGroup"
+private foreign handler ObjC_NSWindowTabGroupAddWindow(in pNSWindowTabGroup as ObjcRetainedId, in pNSWindow as optional ObjcId) returns nothing binds to "objc:NSWindowTabGroup.-addWindow:"
+-- Adds a window to the tab group.
+private foreign handler ObjC_NSWindowTabbedWindows(in pNSWindow as ObjcId) returns optional any binds to "objc:NSWindow.tabbedWindows"
+
+------------------------ NSAppearanceNewAppearance
+private foreign handler ObjC_NSAppearanceNewAppearanceNamed(in pNSStringAppearanceName as ObjcId) returns ObjcId binds to "objc:NSAppearance.+appearanceNamed:"
+
+-----------------------  NSImage stuff
+private foreign handler ObjC_NSImageAlloc() returns ObjcRetainedId binds to "objc:NSImage.+alloc"
+private foreign handler ObjC_NSImageInit(in pObj as ObjcRetainedId) returns ObjcId binds to "objc:NSImage.-init"
+
+private foreign handler ObjC_NSImageNamesList( in pNameNSString as optional ObjcId) returns ObjcId binds to "objc:NSImage.-names:"
+private foreign handler ObjC_NSImageNamed( in pNameNSString as optional ObjcId) returns ObjcRetainedId binds to "objc:NSImage.+imageNamed:"
+private foreign handler ObjC_NSImageImageWithSymbolConfiguration( in pObj as ObjcId, in pNSImageSymbolConfig as ObjcId) returns optional ObjcId binds to "objc:NSImage.-imageWithSymbolConfiguration:"
+
+private foreign handler ObjC_NSImageGetSystemImageNamed(in pNameNSString as ObjcId, in pAccessibilityDescr as optional ObjcId) returns ObjcRetainedId binds to "objc:NSImage.+systemImageNamed:"
+private foreign handler ObjC_NSImageWithSystemSymbolNameAndDescription( in pNameNSString as optional ObjcId, in pCaptionNSString as optional ObjcId) returns optional ObjcId binds to "objc:NSImage.+imageWithSystemSymbolName:accessibilityDescription:"
+private foreign handler ObjC_NSImageWithSymbolConfiguration( in pNameNSString as optional ObjcId, in pNSImageSymbolConfig as optional ObjcId) returns optional ObjcId binds to "objc:NSImage.-imageWithSymbolConfiguration:"
+--  ObjC_NSImageSymbolConfigWithScale macOS 11.0+
+private foreign handler ObjC_NSImageSymbolConfigWithScale( in pScale as CUInt) returns optional ObjcId binds to "objc:NSImageSymbolConfiguration.+configurationWithScale:"
+private foreign handler ObjC_NSImageSymbolConfigWithPointSizeAndWeight( in pPointSize as NaturalFloat, in pWeight as NaturalFloat) returns ObjcId binds to "objc:NSImageSymbolConfiguration.+configurationWithPointSize:weight:"
+private foreign handler ObjC_NSImageSymbolConfigWithPointSizeWeightAndScale( in pPointSize as NaturalFloat, in pWeight as NaturalFloat, in pScale as CUInt) returns ObjcId binds to "objc:NSImageSymbolConfiguration.+configurationWithPointSize:weight:scale:"
+
+private foreign handler ObjC_NSImageSetValueForKey(in pObj as ObjcRetainedId, in pValue as ObjcId, in pSelector as ObjcId) returns ObjcId binds to "objc:NSImage.-setValue:forKey:"
+private foreign handler ObjC_NSImageResizingMode(in pObj as ObjcId, in pBoolean as CUInt) returns nothing binds to "objc:NSImage.-setResizingMode:"
+-- NSImageResizingModeStretch = 1 or NSImageResizingModeTile = 0
+
+private foreign handler ObjC_NSImageInitWithContentsOfFile(in pObj as ObjcId, in pFilename as ObjcId) returns ObjcId binds to "objc:NSImage.-initWithContentsOfFile:"
+private foreign handler ObjC_NSImageInitWithData(in pObj as ObjcRetainedId, in pData as ObjcId) returns optional ObjcRetainedId binds to "objc:NSImage.-initWithData:"
+private foreign handler ObjC_NSImageSetTemplate(in pObj as ObjcId, in pBoolean as CBool) returns nothing binds to "objc:NSImage.-setTemplate:"
+private foreign handler ObjC_NSImageTIFFRepresentation(in pObj as ObjcId) returns optional ObjcId binds to "objc:NSImage.-TIFFRepresentation"
+
+private foreign handler ObjC_NSBitmapImageRepAlloc() returns ObjcRetainedId binds to "objc:NSBitmapImageRep.+alloc"
+private foreign handler ObjC_NSBitmapImageRepInitWithCGImage(in pImageRep as ObjcId, in pCGImageRef as CGImageRef) returns ObjcId binds to "objc:NSBitmapImageRep.-initWithCGImage:"
+private foreign handler ObjC_NSBitmapImageRepInitWithCIImage(in pNSBitmapImgRep as ObjcRetainedId, in pCIImage as ObjcId) returns optional ObjcId binds to "objc:NSBitmapImageRep.-initWithCIImage:"
+private foreign handler ObjC_NSBitmapImageRepRepresenatationUsingType(in pBitmapImageRep as ObjcId, in pType as CInt, in pProps as optional ObjcId) returns ObjcId binds to "objc:NSBitmapImageRep.-representationUsingType:properties:"
+private foreign handler ObjC_NSBitmapImageRepWithData(in pData as ObjcId) returns optional ObjcRetainedId binds to "objc:NSBitmapImageRep.+imageRepWithData:"
+
+private foreign handler ObjC_NSImageRepAlloc() returns ObjcRetainedId binds to "objc:NSImageRep.+alloc"
+private foreign handler ObjC_NSImageRepInit(in pNSImageRep as ObjcRetainedId ) returns ObjcId binds to "objc:NSImageRep.-init"
+private foreign handler ObjC_NSImageRepSetSize(in pNSImageRep as ObjcId, in pNSSize as NSSize) returns nothing binds to "objc:NSImageRep.-setSize:"
+private foreign handler ObjC_NSImageRepSetHeight(in pNSImageRep as ObjcId, in pNSSize as CUInt) returns nothing binds to "objc:NSImageRep.-setPixelsHigh:"
+private foreign handler ObjC_NSImageRepSetWidth(in pNSImageRep as ObjcId, in pNSSize as CUInt) returns nothing binds to "objc:NSImageRep.-setPixelsWide:"
+private foreign handler ObjC_NSImageRepDraw(in pNSImageRep as ObjcId) returns CBool binds to "objc:NSImageRep.-draw"
+private foreign handler ObjC_NSImageRepDrawInRect(in pNSImageRep as ObjcId, in pNSRect as ObjcId) returns CBool binds to "objc:NSImageRep.-drawInRect:"
+
+private foreign handler ObjC_NSImageRepresentations(in pImage as ObjcId) returns ObjcId binds to "objc:NSImage.-representations"
+private foreign handler ObjC_NSImageRepGetCGImageForRectContextHints( in pNSImageRep as ObjcId, in pContentRect as optional any, in pContext as optional ObjcId, in pHints as optional ObjcId) returns CGImageRef binds to "objc:NSImage.-CGImageForProposedRect:context:hints:"
+
+-- NSStringFromRect is handy when used in conjunction with Log for printing debug messages:
+private foreign handler objC_NSRectFromString(in pNSString as ObjcId) returns CGRect binds to "objc:NSRect.+NSRectFromString:"
+
+private foreign handler ObjC_NSImageGetSize(in pObj as ObjcId, in pNSSize as NSSize) returns NSSize binds to "objc:NSImage.size"
+private foreign handler ObjC_NSImageSetSize(in pObj as ObjcId, in pNSSize as NSSize) returns nothing binds to "objc:NSImage.-setSize:"
+private foreign handler ObjC_NSImageSetScale(in pObj as ObjcId, in pScale as CUInt) returns nothing binds to "objc:NSImage.-setScale:"
+
+-----------------------  Core Image stuff
+private foreign handler ObjC_CIImageWithCGImage(in pImage as CGImageRef) returns ObjcId binds to "objc:CIImage.+imageWithCGImage:"
+private foreign handler ObjC_CIImageGetProps(in pCIImage as ObjcId) returns optional ObjcId binds to "objc:CIImage.-properties"
+private foreign handler ObjC_CIContextCreate(in pOptions as ObjcId) returns ObjcId binds to "objc:CIContext.+contextWithOptions:"
+private foreign handler ObjC_CIFilterOutputImage(in pCIFilter as ObjcId) returns optional ObjcId binds to "objc:CIFilter.outputImage"
+-- @property(readonly, nonatomic, nullable) CIImage *outputImage;
+private foreign handler ObjC_CIFilterSetValueForKey(in pCIFilter as ObjcId, in pValue as ObjcId, in pKey as ObjcId) returns ObjcId binds to "objc:CIFilter.-setValue:forKey:"
+private foreign handler ObjC_CGImageSourceCreateWithURL(in pURL as ObjcId, in pOptions as ObjcId) returns ObjcId binds to "objc:CGImageSource.+imageSourceWithURL:options:"
+private foreign handler ObjC_CGImageSourceCreateImageAtIndex(in pObj as ObjcRetainedId, in pIndex as CUInt, in pOptions as ObjcId) returns CGImageRef binds to "objc:CGImageSource.-createImageAtIndex:options:"
+private foreign handler ObjC_CIFiltersFilterWithName(in pCIFilterNSStr as ObjcId) returns optional ObjcId binds to "objc:CIFilter.+filterWithName:"
+
+----------------------  NSColor stuff
+
+constant kNSColorSystemColorNames is "systemBlueColor,systemGreenColor,systemRedColor,systemYellowColor,systemOrangeColor,systemPurpleColor,systemPinkColor,systemTealColor,systemIndigoColor,systemGrayColor,systemGray2Color,systemGray3Color,systemGray4Color,systemGray5Color,systemGray6Color"
+
+private foreign handler ObjC_NSColorColorNamed( in pName as ObjcId ) returns ObjcId binds to "objc:NSColor.+named:"
+private foreign handler ObjC_NSColorColorWithKey( in pNSColorName as ObjcId ) returns ObjcId binds to "objc:NSColor.-colorWithKey:"
+private foreign handler ObjC_NSColorControlAccentColor() returns ObjcId binds to "objc:NSColor.controlAccentColor"
+
+private foreign handler ObjC_NSColorListAvailableColorLists() returns ObjcId binds to "objc:NSColorList.+availableColorLists"
+private foreign handler ObjC_NSColorListName(in pNSColorList as ObjcId) returns ObjcId binds to "objc:NSColorList.name"
+private foreign handler ObjC_NSColorListColorListNamed(in pNSColorLists as ObjcId) returns optional ObjcId binds to "objc:NSColorList.+colorListNamed:"
+private foreign handler ObjC_NSColorListColorListAllKeys(in pNSColorList as ObjcId) returns optional ObjcId binds to "objc:NSColorList.allKeys"
+private foreign handler ObjC_NSColorListColorWithKey(in pNSColorList as ObjcId, in pNSColorName as ObjcId) returns optional ObjcId binds to "objc:NSColorList.-colorWithKey:"
+-- It takes an NSString parameter named pName and returns an NSColor object.
+private foreign handler ObjC_NSColorRedComponent(in pColor as ObjcId) returns CDouble binds to "objc:NSColor.-redComponent"
+private foreign handler ObjC_NSColorGreenComponent(in pColor as ObjcId) returns CDouble binds to "objc:NSColor.-greenComponent"
+private foreign handler ObjC_NSColorBlueComponent(in pColor as ObjcId) returns CDouble binds to "objc:NSColor.-blueComponent"
+private foreign handler ObjC_NSColorAlphaComponent(in pColor as ObjcId) returns CDouble binds to "objc:NSColor.-alphaComponent"
+-- These binding strings correspond to methods in the NSColor class that return the individual components (red, green, blue, and alpha) of a color.
+-- Each method takes an NSColor object (pColor) as input and returns a CDouble value representing the respective component.
+private foreign handler ObjC_NSColorNumberOfComponents(in pColor as ObjcId) returns CUInt binds to "objc:NSColor.numberOfComponents"
+private foreign handler ObjC_NSColorColorSpace(in pNSColor as ObjcId) returns ObjcId binds to "objc:NSColor.-colorSpace"
+private foreign handler ObjC_NSColorSpaceAlloc() returns ObjcRetainedId binds to "objc:NSColorSpace.+alloc"
+private foreign handler ObjC_NSColorSpaceInitWithCGColorSpace(in pObj as ObjcRetainedId, in CGColorSpaceRef as optional Pointer) returns ObjcId binds to "objc:NSColorSpace.-initWithCGColorSpace:"
+private foreign handler ObjC_NSColorUsingColorSpace (in pNSColor as ObjcId, in pNSColorSpace as ObjcId) returns ObjcId binds to "objc:NSColor.-colorUsingColorSpace:"
+private foreign handler ObjC_NSColorFromRGB(in pRed as CDouble, in pGreen as CDouble, in pBlue as CDouble) returns ObjcId binds to "objc:NSColor.+colorWithRed:green:blue:alpha:"
+private foreign handler ObjC_NSColorFromRGBA(in pRed as CDouble, in pGreen as CDouble, in pBlue as CDouble, in pAlpha as CDouble) returns ObjcId binds to "objc:NSColor.+colorWithRed:green:blue:alpha:"
+private foreign handler ObjC_NSColorFromWhite(in pWhite as CDouble, in pAlpha as CDouble) returns ObjcId binds to "objc:NSColor.+colorWithWhite:alpha:"
+private foreign handler ObjC_NSColorFromCMYK(in pCyan as CDouble, in pMagenta as CDouble, in pYellow as CDouble, in pBlack as CDouble, in pAlpha as CDouble) returns ObjcId binds to "objc:NSColor.+colorWithDeviceCyan:magenta:yellow:black:alpha:"
+private foreign handler ObjC_NSColorFromHSB(in pHue as CDouble, in pSaturation as CDouble, in pBrightness as CDouble, in pAlpha as CDouble) returns ObjcId binds to "objc:NSColor.+colorWithHue:saturation:brightness:alpha:"
+private foreign handler ObjC_NSColorGetRGBA(in pNSColor as ObjcId, out rRed as optional CDouble, out rGreen as optional CDouble, out rBlue as optional CDouble, out rAlpha as optional CDouble ) returns nothing binds to "objc:NSColor.getRed:green:blue:alpha:"
+private foreign handler ObjC_NSColorGetCMYK(in pColor as ObjcId) returns Array binds to "objc:NSColor.getCyan:magenta:yellow:black:alpha:"
+private foreign handler ObjC_NSColorGetHueSaturationBrightness(in pColor as ObjcId) returns Array binds to "objc:NSColor.getHue:saturation:brightness:alpha:"
+
+-------------------------------------------------------------------------------------------  Apple PDFKit Bindings ----------------------------------------------------------------------------------------
+private foreign handler objC_ApplePDFKitPDFViewAlloc() returns ObjcId binds to "objc:PDFView.+alloc"
+private foreign handler objC_ApplePDFKitPDFViewInit(in pPDFView as ObjcRetainedId) returns ObjcRetainedId binds to "objc:PDFView.-init"
+-- private foreign handler objC_ApplePDFKitPDFSetDocument(in pPDFView as ObjcId, in pPDFDocument as ObjcId) returns nothing binds to "objc:objc:PDFView.-document:"
+private foreign handler objC_ApplePDFKitPDFViewSetValueForKey(in pPDFDocument as ObjcId, in pValue as ObjcId, in pSelector as ObjcId) returns nothing binds to "objc:PDFView.-setValue:forKey:"
+private foreign handler objC_ApplePDFKitPDFViewSetBoolValueForKey(in pPDFDocument as ObjcId, in pValue as CBool, in pSelector as ObjcId) returns nothing binds to "objc:PDFView.-setValue:forKey:"
+
+private foreign handler objC_ApplePDFKitPDFDocumentAlloc() returns ObjcRetainedId binds to "objc:PDFDocument.+alloc"
+private foreign handler objC_ApplePDFKitPDFDocumentInitFromURL(in pPDFDocument as ObjcRetainedId, in pNSURL as ObjcId) returns ObjcRetainedId binds to "objc:PDFDocument.-initWithURL:"
+--private foreign handler objC_ApplePDFKitPDFDocumentGetPageCount(in pPDFDocument as ObjcId) returns ObjcId binds to "objc:PDFDocument.pageCount"
+private foreign handler objC_ApplePDFKitPDFDocumentValueForKey(in pPDFDocument as ObjcId, in pSelector as ObjcId) returns ObjcId binds to "objc:PDFDocument.-valueForKey:"
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- private foreign handler ObjC_NSTextFieldSetTarget(in pObj as ObjcId, in pTarget as ObjcId) returns nothing binds to "objc:NSTextField.-setTarget:"
+-- private foreign handler ObjC_NSTextFieldSetAction(in pObj as ObjcId, in pAction as UIntPtr) returns nothing binds to "objc:NSTextField.-setAction:"
+-- ObjC_NSTextFieldSetTarget(mTextFieldView, mTextFieldProxy)
+-- ObjC_NSTextFieldSetAction(mTextFieldView, ObjcProxyGetAction())
+
+public foreign handler ObjC_NSPredicateFromMetadataQueryString(in pFormatNSString as ObjcId) returns ObjcId binds to "objc:NSPredicate.+predicateFromMetadataQueryString:"
+
+---------------------- AVAudioSession
+private foreign handler objC_AVAudioSession() returns ObjcId binds to "objc:AVAudioSession.+sharedInstance"
+private foreign handler objC_AVAudioSessionGetCategory(in pAVAudioSession as ObjcId ) returns ObjcId binds to "objc:AVAudioSession.category"
+private foreign handler objC_AVAudioSessionSetCategory(in pAVAudioSession as ObjcId, in pAVAudioSessionCategory as ObjcId, out rNSError as ObjcId) returns CBool binds to "objc:AVAudioSession.-setCategory:error:"
+private foreign handler objC_AVAudioSessionRequestRecordPermission(in pAVAudioSession as ObjcId, in pGrantedHandler as ObjcBlockPointer) returns nothing binds to "objc:AVAudioSession.-requestRecordPermission:"
+
+--------------------------------------------------------------- macOS C Foundation bindings
+
+public foreign type ClassPropertiesList  binds to "MCAggregateTypeInfo:r"
+private foreign handler c_CFErrorCopyDescription(in pCFErrorRef as ObjcId) returns ObjcId binds to "c:CFErrorCopyDescription"
+private foreign handler c_CFArrayGetCount(in pCFArrayRef as Pointer) returns LCUInt binds to "c:CFArrayGetCount"
+private foreign handler c_CFArrayCreate(in pAllocatorRef as optional any,in pCArray as Pointer, in pCFIndex as UInt32, in pCFArrayCallback as optional any) returns optional ObjcId binds to "c:CFArrayCreate"
+-- CFArrayRef CFArrayCreate(CFAllocatorRef allocator, const void **values, CFIndex numValues, const CFArrayCallBacks *callBacks);
+private foreign handler c_CFBridgingRelease(in pCFStringRef as Pointer) returns optional ObjCId binds to "c:Foundation.framework>CFBridgingRelease"
+private foreign handler c_CFStringCreateCopy(in pCFAllocatorRef as Pointer, in pCFStringRef as optional ObjCId) returns optional ObjCId binds to "c:Foundation.framework>CFStringCreateCopy"
+private foreign handler c_NSClassFromString(in pClassNameString as ObjcId) returns ObjcId binds to "c:NSClassFromString"
+
+private foreign handler c_class_copyPropertyList(in pClass as ObjcId, out pCount as UInt32) returns optional Pointer binds to "c:class_copyPropertyList"
+private foreign handler c_CFErrorCopyDescription(in pCFErrorRef as ObjcId) returns ObjcId binds to "c:CFErrorCopyDescription"
+private foreign handler c_class_getProperty(in pClass as ObjcId, in pPropNameNSStr as ObjcId) returns optional Pointer binds to "c:c_class_getProperty"
+private foreign handler c_property_getName(in pClass as optional Pointer) returns optional Pointer binds to "c:property_getName"
+private foreign handler c_CFArrayCreate(in pAllocatorRef as optional any,in pCArray as Pointer, in pCFIndex as UInt32, in pCFArrayCallback as optional any) returns optional ObjcId binds to "c:CFArrayCreate"
+-- CFArrayRef CFArrayCreate(CFAllocatorRef allocator, const void **values, CFIndex numValues, const CFArrayCallBacks *callBacks);
+private foreign handler c_NSClassFromString(in pClassNameString as ObjcId) returns ObjcId binds to "c:NSClassFromString"
+private foreign handler c_class_copyPropertyList(in pClass as ObjcId, out pCount as UInt32) returns optional Pointer binds to "c:class_copyPropertyList"
+private foreign handler c_class_getProperty(in pClass as ObjcId, in pPropNameNSStr as ObjcId) returns optional Pointer binds to "c:c_class_getProperty"
+-- objc_property_t class_getProperty(Class cls, const char *name);
+private foreign handler c_property_getName(in pClass as optional Pointer) returns optional Pointer binds to "c:property_getName"
+-- const char * property_getName(objc_property_t property);
+private foreign handler c_class_getProperty(in pClass as ObjcId, in pPropNameNSStr as ObjcId) returns optional Pointer binds to "c:c_class_getProperty"
+-- objc_property_t class_getProperty(Class cls, const char *name);
+private foreign handler c_property_getName(in pClass as optional Pointer) returns optional Pointer binds to "c:property_getName"
+-- const char * property_getName(objc_property_t property);
+private foreign handler c_CFErrorCopyDescription(in pCFErrorRef as ObjcId) returns ObjcId binds to "c:CFErrorCopyDescription"
+private foreign handler c_class_copyPropertyList(in pClass as ObjcId, out pCount as UInt32) returns optional Pointer binds to "c:class_copyPropertyList"
+
+-- c_NSRectFromString is super handy, it parses an NSstring for four numbers in order orig x, orig y, width, height:
+private foreign handler c_NSSizeFromString(in pNSString as ObjcId) returns optional NSSize binds to "c:NSSizeFromString"
+private foreign handler c_CGColorSpaceCreateDeviceRGB() returns optional Pointer binds to "c:CGColorSpaceCreateDeviceRGB"
+private foreign handler c_NSRectFromString(in pNSString as ObjcId) returns NSRect binds to "c:NSRectFromString" -- might return pointer to CGRect
+private foreign handler c_NSStringFromRect(in pNSRect as NSRect) returns ObjcId binds to "c:NSStringFromRect"
+-- private foreign handler c_NSStringFromRect(in pCGRect as CGRect) returns ObjcId binds to "c:NSStringFromRect"
+
+-- NSStringFromRect is handy when used in conjunction with Log for printing debug messages:
+-- c_NSRectFromString is super handy, it parses an NSstring for four numbers in order orig x, orig y, width, height:
+private foreign handler c_NSRectFromString(in pNSString as ObjcId) returns optional NSRect binds to "c:NSRectFromString"
+
+__safe foreign handler PointerToPropsList(out rAggregate as ClassPropertiesList, in pPointer as Pointer, in pSize as UIntSize) returns nothing binds to "c:memcpy"
+-- PointerToPropsList(PropsList,rOutArrayPtr,8)
+private foreign handler c_CFArrayCreate(in pAllocatorRef as optional any,in pCArray as Pointer, in pCFIndex as UInt32, in pCFArrayCallback as optional any) returns optional ObjcId binds to "c:CFArrayCreate"
+-- CFArrayRef CFArrayCreate(CFAllocatorRef allocator, const void **values, CFIndex numValues, const CFArrayCallBacks *callBacks);
+-----------------------------------------------------------------
+-- Core Graphics / Quartz Display Services / CGCaptureAllDisplays
+-- CGError CGCaptureAllDisplays(void)
+public foreign handler c_CGCaptureAllDisplays() returns optional ObjcId binds to "c:CoreGraphics>CGCaptureAllDisplays"
+public foreign handler c_CGSessionCopyCurrentDictionary() returns optional ObjcId binds to "c:CoreGraphics>CGSessionCopyCurrentDictionary"
+public foreign handler c_CGMainDisplayID() returns optional CUInt binds to "c:CoreGraphics>CGMainDisplayID"
+public foreign handler c_CGDisplayScreenSize(in tDisplayID as optional CUInt) returns optional CGSize binds to "c:CoreGraphics>CGDisplayScreenSize"
+public foreign handler c_CGDisplayPixelsHigh(in tDisplayID as optional CUInt) returns optional CUint binds to "c:CoreGraphics>CGDisplayPixelsHigh"
+public foreign handler c_CGDisplayPixelsWide(in tDisplayID as optional CUInt) returns optional CUint binds to "c:CoreGraphics>CGDisplayPixelsWide"
+-- CGSize CGDisplayScreenSize(CGDirectDisplayID display);
+----------------------------------------------------------------- Time Stamping ------------------------------------------------------------
+-- https://developer.apple.com/documentation/kernel/1462446-mach_absolute_time?language=objc
+-- private foreign handler c_mach_absolute_time() returns MIDITimeStamp binds to "c:Kernel.framework>mach_absolute_time"
+private foreign handler c_mach_absolute_time() returns UInt64 binds to "c:mach_absolute_time"
+private foreign handler c_mach_timebase_info(inout pTimeBaseInfo as TimeBaseInfo) returns nothing binds to "c:mach_timebase_info"
+
+------------------------------------------------------------   Bindings Engine Internals -------------------------------------------------------------------------
+
+foreign handler MCStringCreateWithCString(in pString as Pointer, out rString as String) returns CBool binds to "<builtin>"
+__safe foreign handler MCStringCreateWithCString(in pString as Pointer, out rString as String) returns CBool binds to "<builtin>"
+__safe foreign handler MCArrayCreateWithCFArrayRef(in pCFArray as optional Pointer, in pUseList as CBool, out rList as List ) returns CBool binds to "<builtin>"
+foreign handler MCDataGetBytePtr(in pData as Data) returns Pointer binds to "<builtin>"
+private foreign handler MCCanvasFontGetHandle(in pFont as Font, out rHandle as ObjcId) returns nothing binds to "<builtin>"
+---- RunLoop Control? -----
+public type MCRunloopActionCallback is Pointer
+public type MCRunloopActionRef is Pointer
+__safe foreign handler MCEngineAddRunloopAction(in pCallback as MCRunloopActionCallback, in pContext as optional Pointer, out rAction as MCRunloopActionRef) returns CBool binds to "<builtin>"
+__safe foreign handler MCEngineRemoveRunloopAction(in pAction as MCRunloopActionRef) returns nothing binds to "<builtin>"
+__safe foreign handler MCEngineRunloopWait() returns CBool binds to "<builtin>"
+__safe foreign handler MCEngineRunloopBreakWait() returns nothing binds to "<builtin>"
+-- foreign handler MCDataGetBytePtr(in pData as Data) returns Pointer binds to "<builtin>"
+
+---------------------------------------------------------------------------------------------------------- --- Android / Java bindings
+
+---------------------------------------------------------------------------------------------------------- --- Windows Win32 C C++ bindings
+
+------------------------------------------------------------------------------------------------------------- Linux C C++ GTK GDK Bindings
+
+------------------------------------------------------------------------------------------------------------- Emscripten JavaScript Bindings
+
+---------------------------------------------------- UTILITY HANDLERS -------------------------------------------------------------------
+
+
+-- foreign handler MCDataGetBytePtr(in pData as Data) returns Pointer binds to "<builtin>"
+public handler getFourCharCodeFromUint32( in pNum as optional any) returns optional String
+   -- 1383023468 = appl
+   variable tStr as String
+   variable tTempStr as String
+   variable tNum as Number
+   variable tBinsStr as String
+   log pNum
+   if pNum is not nothing then
+      if pNum is a number then
+         put pNum formatted as string into pNum
+      end if
+      put pNum converted from base 10 to base 16 into tBinsStr
+      if (the number of chars in tBinsStr) < 8 then
+         put 8 - (the number of chars in tBinsStr) into tNum
+         repeat tNum times
+            put "0" before tBinsStr
+         end repeat
+         -- log tBinsStr
+      end if
+       put ( (char 1 to 2 of tBinsStr) converted from base 16 to base 10 ) into tTempStr
+       put the char with code (tTempStr parsed as number) into tStr
+       put ( (char 3 to 4 of tBinsStr) converted from base 16 to base 10 ) into tTempStr
+       put the char with code (tTempStr parsed as number) after tStr
+       put ( (char 5 to 6 of tBinsStr) converted from base 16 to base 10 ) into tTempStr
+       put the char with code (tTempStr parsed as number) after tStr
+       put ( (char 7 to 8 of tBinsStr) converted from base 16 to base 10 ) into tTempStr
+       put the char with code (tTempStr parsed as number) after tStr
+      return tStr
+   else
+      return the empty string
+   end if
+end handler
+
+public handler getIntegerFromFourCharCodeLittleEndian(in pStr as String) returns optional Uint32
+   variable tUint32 as Uint32
+   put (the code of char 4 of pStr) * 16777216 into tUint32 ---  256 * 256 * 256
+   put tUint32 + ((the code of char 3 of pStr) * 65536 ) into tUint32 -- 256 * 256
+   put tUint32 + ((the code of char 2 of pStr) * 256 ) into tUint32
+   put tUint32 + (the code of char 1 of pStr) into tUint32
+   return tUint32
+end handler
+
+public handler getIntegerFromFourCharCodeBigEndian(in pStr as String) returns optional Uint32
+   variable tUint32 as Uint32
+   put (the code of char 1 of pStr) * 16777216 into tUint32
+   put tUint32 + ((the code of char 2 of pStr) * 65536 ) into tUint32
+   put tUint32 + ((the code of char 3 of pStr) * 256 ) into tUint32
+   put tUint32 + (the code of char 4 of pStr) into tUint32
+   return tUint32
+end handler
+
+public handler getBitFeild( in pNum as optional any) returns optional String
+   if pNum is not nothing then
+      variable tStr as String
+      variable tNum as Number
+      put pNum converted to base 2 into tStr
+      if (the number of chars in tStr) < 32 then
+         put 32 - (the number of chars in tStr) into tNum
+         repeat tNum times
+            put "0" before tStr
+         end repeat
+      end if
+      return tStr
+  else
+     return "0"
+  end if
+end handler
+
+
+public handler GetNSObjectClassName(in tNSObj as optional ObjcId) returns optional String
+   variable tOSStatus as CSInt
+   variable tNSStrObj as optional ObjcId
+   variable tStr as optional String
+   if tNSObj is not nothing then
+   unsafe
+      put objC_NSObjectClassName(tNSObj) into tNSStrObj
+      put StringFromNSString(tNSStrObj) into tStr
+      return tStr
+   end unsafe
+   else
+      return nothing
+   end if
+end handler
+
+private handler LogNSObjectClassName(in tNSObj as optional ObjcId)
+   variable tOSStatus as CSInt
+   variable tNSStrObj as optional ObjcId
+   variable tStr as optional String
+   if tNSObj is not nothing then
+   unsafe
+      put objC_NSObjectClassName(tNSObj) into tNSStrObj
+      put StringFromNSString(tNSStrObj) into tStr
+      log tStr
+   end unsafe
+   else
+      log "No Object"
+   end if
+end handler
+
+public handler LogNSObjectClassAndSuperClassName(in pNSObj as optional ObjcId)
+   variable tNSStrObj as optional ObjcId
+   variable tNSObjB as optional ObjcId
+   variable tStr as optional String
+   variable tClass as ObjcId
+   if pNSObj is not nothing then
+      unsafe
+         -- log ["Obj ID" , pNSObj]
+         put objC_NSObjectClassName(pNSObj) into tNSStrObj
+
+         put StringFromNSString(tNSStrObj) into tStr
+         log ["Class Name" , tStr]
+         put c_NSClassFromString(tNSStrObj) into tClass
+         put objC_NSObjectGetSuperClass(pNSObj) into tNSObjB
+         put objC_NSObjectClassName(tNSObjB) into tNSStrObj
+         put StringFromNSString(tNSStrObj) into tStr
+         log ["SuperClass" , tStr]
+      end unsafe
+   else
+      log "No Object"
+   end if
+end handler
+
+public handler LogNSObjectReflection(in pNSObj as optional ObjcId)
+
+   variable tOSStatus as CSInt
+   variable tNSStrObj as optional ObjcId
+   variable tNSObjB as optional ObjcId
+   variable tStr as optional String
+   variable tClass as ObjcId
+   variable tPropsCount as optional UInt32
+   variable tClassDescription as optional ObjcId
+   variable tListNSObj as optional ObjcId
+   variable tListOpaquePtr as optional Pointer -- to an array of 'objc_property_t'
+   variable tListArray as optional Array
+   variable tList as optional List
+   variable tString as optional ZStringNative
+   variable tCStringPtr as optional Pointer
+   variable tSuccess as CBool
+   variable rOutArrayPtr as ClassPropertiesList
+
+   if pNSObj is not nothing then
+      unsafe
+         put objC_NSObjectClassName(pNSObj) into tNSStrObj
+         put StringFromNSString(tNSStrObj) into tStr
+         log ["Class Name" , tStr]
+         put c_NSClassFromString(tNSStrObj) into tClass
+
+         put objC_NSObjectGetSuperClass(pNSObj) into tNSObjB
+         put objC_NSObjectClassName(tNSObjB) into tNSStrObj
+         put StringFromNSString(tNSStrObj) into tStr
+         log ["SuperClass" , tStr]
+
+         put objC_NSObjectGetDescription(pNSObj) into tNSStrObj
+         put StringFromNSString(tNSStrObj) into tStr
+         log ["Description" , tStr]
+
+         -- GetNSObjectAttributeKeys(pNSObj)
+         put ObjC_NSObjectGetAttributeKeys(pNSObj) into tListNSObj
+         -- put ListFromNSArray(tNSObjB) into tList
+         if tListNSObj is not nothing then
+            log  ["AttributeKeys obj" , tListNSObj]
+            put StringFromNSString(tListNSObj) into tStr
+            log ["AttributeKeys" , tStr]
+         end if
+         put c_class_copyPropertyList(tClass,tPropsCount) into tListOpaquePtr
+         log ["Props List Count and Pointer", tPropsCount,tListOpaquePtr ]
+            --if tPropsCount is not 0 then
+               -- put PointerToObjcObject(tListOpaquePtr) into tListNSObj
+               --   put c_CFArrayCreate(nothing, tListOpaquePtr, tPropsCount, nothing) into tListNSObj
+               -- log tListNSObj
+               -- put ListFromNSArray(tListNSObj) into tList
+               -- log tList
+
+               -- put objC_NSObjectClassName(tListNSObj) into tNSStrObj
+               -- put StringFromNSString(tNSStrObj) into tStr
+               -- log ["Class Name" , tStr]
+               -- put MCArrayCreateWithCFArrayRef(tListOpaquePtr,true,tList) into tSuccess
+               -- log ["Props List", tList ]
+
+                -- LogNSObjectClassName(tListNSObj)
+                -- log "Has Props"
+               -- PointerToPropsList(rOutArrayPtr,tListOpaquePtr,8)
+               -- log ["Out Array", rOutArrayPtr]
+               -- put PointerToObjcObject(tListOpaquePtr) into tListNSObj
+               -- put ListFromNSArray(tListNSObj) into tList
+               -- log tList
+               -- put c_property_getName(tPropertyPtr) into tCStringPtr
+               -- log ["Name String Ptr", tCStringPtr]
+               -- put MCStringCreateWithCString(tCStringPtr,tString) into tSuccess
+               -- log [tSuccess,tString ]
+               -- put PointerToObjcObject(tListOpaquePtr) into tListNSObj
+               -- log tListNSObj
+               -- LogNSObjectClassName(tListNSObj)
+               -- log tString
+            -- end if
+
+            -- const char * property_getName(objc_property_t property);
+            -- unsigned int outCount, i;
+            -- objc_property_t *properties = class_copyPropertyList([TestClass class], &outCount);
+            --for (i = 0; i < outCount; i++) {
+            --    objc_property_t property = properties[i];
+            --    fprintf(stdout, "%s %s\n", property_getName(property), property_getAttributes(property)); }
+
+            -- put ListFromNSArray(tListOpaquePtr) into tList
+            -- log tList
+         --   put PointerToObjcObject(tListOpaquePtr) into tListNSObj
+         -- put ListFromNSArray[tListNSObj] into tList
+         --   log tList
+
+            --put objC_NSObjectsGetClassDescriptionForClass(tClass) into tClassDescription
+            -- log ["Class Description Obj", tClassDescription]
+            -- objC_lookUpClass(pClass)
+            -- LogNSObjectClassName(tClassDescription)
+            -- put objC_NSObjectGetAttributeKeys(tClassDescription) into tListNSObj
+            -- attributeKeys
+
+            -- Get the list of methodss
+            -- objc_sendMessage(tClass, "methods")
+            -- put ListFromNSArray(tListNSObj) into tList
+            -- log tList
+      end unsafe
+   else
+      log "No Object"
+   end if
+end handler
+
+public handler NSArrayToString(in pNSArray as ObjcObject) returns String
+  variable tNSArray as ObjcObject
+  variable tNSString as ObjcObject
+  variable tStr as String
+  put "\n" into tStr
+  unsafe
+    put ObjC_NSArrayComponentsJoinedByString(pNSArray, StringToNSString(tStr)) into tNSString
+  end unsafe
+  return StringFromNSString(tNSString)
+end handler
+
+private handler NSWindowFromWindowID(in tWindowID as Integer) returns ObjcId
+	variable tNSSharedApplication as ObjcId
+	variable tNSWindow as ObjcId
+	unsafe
+	put objC_NSApplicationSharedApplication() into tNSSharedApplication
+	put objC_NSApplicationWindowWithWindowNumber(tNSSharedApplication, tWindowID) into tNSWindow
+	end unsafe
+	return tNSWindow
+end handler
+
+private handler NSWindowGetCollectionBehavior(in pNSWindow as ObjcId) returns CLong
+	variable collectionBehavior as CLong
+	unsafe
+	put ObjC_NSWindowGetCollectionBehavior(pNSWindow) into collectionBehavior
+	end unsafe
+	return collectionBehavior
+end handler
+
+public handler macOSVersion() returns String
+	variable tNSProcessInfo as ObjcObject
+   variable tString as String
+   -- unsafe
+   --   put objC_NSProcessInfoAlloc() into tNSProcessInfo
+   --   put objC_NSProcessInfoInit(tNSProcessInfo) into tNSProcessInfo
+   --   LogNSObjectClassName(tNSProcessInfo)
+   -- @property(readonly) NSOperatingSystemVersion operatingSystemVersion;
+   -- operatingSystemVersion & operatingSystemVersionString return the 10.16.x format instead of 11.x
+   -- this shell command is the only thing I could find that returns the correct version
+   -- end unsafe
+   execute script "return shell(\qsw_vers -productVersion\q)"
+   put the result into tString
+   return tString
+end handler
+
+public handler appleScriptObjTests(in pAppleScript as String) returns any
+	variable tNSAppleScriptObj as ObjcObject
+	variable rErrorDictionary as optional ObjcObject
+	variable tSuccess as Boolean
+	variable tNSPath as optional ObjcObject
+   variable tNSURLAtribString as optional ObjcObject
+   variable tNSString as optional ObjcId
+   variable tString as String
+   variable tNSNumber as optional ObjcObject
+   variable tCUInt as optional CUint
+   variable tNSRange as optional NSRange
+
+   variable tAttributesArray as optional Array
+	unsafe
+   	put objC_NSAppleScriptAlloc() into tNSAppleScriptObj
+      -- put ArrayToNSDictionary(the empty array) into rErrorDictionary
+      -- log tSharedFileManager`
+      -- LogNSObjectClassName(tNSAppleScriptObj)
+      -- put objC_NSErrorAlloc() into rNSError
+      -- LogNSObjectClassName(rNSError)
+      --put nothing into rErrorDictionary
+   	put objC_NSAppleScriptInitWithSource( tNSAppleScriptObj, StringToNSString(pAppleScript)) into tNSAppleScriptObj
+      LogNSObjectClassName(tNSAppleScriptObj)
+      put objC_NSAppleScriptCompileAndReturnError(tNSAppleScriptObj , rErrorDictionary ) into tSuccess
+      -- put objC_NSAppleScriptExecuteAndReturnError(tNSAppleScriptObj , rErrorDictionary ) into tSuccess
+      if tSuccess then
+         -- put 0 into tCUInt
+         -- put tCUInt into element 1 of tNSRange --- start
+         put objC_NSAppleScriptGetRichTextSource(tNSAppleScriptObj) into tNSURLAtribString
+         LogNSObjectClassName(tNSURLAtribString)
+         put objC_NSAttributedStringLength(tNSURLAtribString) into tCUInt
+         log tCUInt
+         put objC_NSAttributedStringString(tNSURLAtribString) into tNSString
+         put StringFromNSString(tNSString) into tString
+         log tString
+         -- put StringFromNSString( tNSURLAtribString ) into tString
+         -- put ArrayFromNSDictionary(tNSURLAtribString) into tAttributesArray
+        -- log [the keys of tAttributesArray]
+         --return tSuccess
+          -- put nothing into tNSRange
+          -- put tCUInt into element 2 of tNSRange --- legth
+          -- log tNSRange
+      else
+        put ArrayFromNSDictionary(rErrorDictionary) into tAttributesArray
+        log tAttributesArray
+        --return tSuccess
+     end if
+      --return getFourCharCodeFromUint32(tAttributesArray["NSFileHFSCreatorCode"]) &"\n"& getFourCharCodeFromUint32(tAttributesArray["NSFileHFSTypeCode"])
+      -- put objC_NSURLGetAbsoluteString(tUserHomeDir) into tNSURLString
+      -- put objC_NSURLGetPath(tUserHomeDir) into tNSPath
+       -- return StringFromNSString(tNSPath)
+      -- return StringFromNSString(tUserHomeDir)
+      -- put objC_NSURLGetPath(tUserHomeDir) into tNSPath
+      -- return ( StringFromNSString(tNSURLString)    & "\n" & StringFromNSString(tNSPath) )
+	end unsafe
+   return tSuccess
+end handler
+
+end module

@@ -1,0 +1,346 @@
+library org.openxtalk.urlsession
+
+use com.livecode.engine
+use com.livecode.foreign
+use com.livecode.objc
+-- use com.livecode.widget
+
+-- NSString UTF8 --- probably don't need these, likely the same as StringToNSString / StringFromNSString
+foreign handler ObjC_NSStringWithUTF8String(in pBytes as ZStringNative) returns ObjcId binds to "objc:NSString.+stringWithUTF8String:"
+foreign handler ObjC_NSStringUTF8String(in pString as ObjcId) returns ZStringNative binds to "objc:NSString.-UTF8String"
+
+-- NSURL
+foreign handler ObjC_NSURLWithString(in pString as ObjcId) returns ObjcId binds to "objc:NSURL.+URLWithString:"
+foreign handler ObjC_NSURLLastPathComponent(in pURL as ObjcId) returns ObjcId binds to "objc:NSURL.-lastPathComponent"
+foreign handler ObjC_NSURLByAppendingPathComponent(in pURL as ObjcId, in pComponent as ObjcId) returns ObjcId binds to "objc:NSURL.-URLByAppendingPathComponent:"
+foreign handler ObjC_NSURLPath(in pURL as ObjcId) returns ObjcId binds to "objc:NSURL.-path"
+
+-- NSURLSession
+foreign handler ObjC_NSURLSessionSharedSession() returns ObjcId binds to "objc:NSURLSession.+sharedSession"
+foreign handler ObjC_NSURLSessionDownloadTaskWithURL(in pSession as ObjcId, in pNSURL as ObjcId ) returns ObjcId binds to "objc:NSURLSession.-downloadTaskWithURL:"
+foreign handler ObjC_NSURLSessionDownloadTaskWithURLCompletion(in pSession as ObjcId, in pNSURL as ObjcId, in pBlock as optional ObjcBlockPointer) returns ObjcId binds to "objc:NSURLSession.-downloadTaskWithURL:completionHandler:"
+-- NSURLSessionTask
+foreign handler ObjC_NSURLSessionTaskResume(in pTask as ObjcId) returns nothing binds to "objc:NSURLSessionTask.-resume"
+foreign handler ObjC_NSURLSessionTaskSuspend(in pTask as ObjcId) returns nothing binds to "objc:NSURLSessionTask.-suspend"
+foreign handler ObjC_NSURLSessionTaskCancel(in pTask as ObjcId) returns nothing binds to "objc:NSURLSessionTask.-cancel"
+
+foreign handler ObjC_NSURLSessionTaskState(in pTask as ObjcId) returns CUint binds to "objc:NSURLSessionTask.state"
+foreign handler ObjC_NSURLSessionTaskGetPriority(in pTask as ObjcId) returns NaturalFloat binds to "objc:NSURLSessionTask.priority"
+-- The relative priority at which you’d like a host to handle the task, specified as a floating point value.
+-- NSURLSessionTaskPriorityDefault = 0.5, highest priority value is 1.0
+
+foreign handler ObjC_NSURLSessionTaskCountOfBytesExpectedToReceive(in pTask as ObjcId) returns CULongLong binds to "objc:NSURLSessionTask.countOfBytesExpectedToReceive"
+foreign handler ObjC_NSURLSessionTaskCountOfBytesReceived(in pTask as ObjcId) returns CULongLong binds to "objc:NSURLSessionTask.countOfBytesReceived"
+
+-- NSHTTPURLResponse
+foreign handler ObjC_NSHTTPURLResponseClass() returns ObjcId binds to "objc:NSHTTPURLResponse.+class"
+foreign handler ObjC_NSHTTPURLResponseStatusCode(in pResponse as ObjcId) returns String binds to "objc:NSHTTPURLResponse.-statusCode"
+
+-- NSFileManager
+foreign handler ObjC_NSFileManagerDefaultFileManager() returns ObjcId binds to "objc:NSFileManager.+defaultManager"
+foreign handler ObjC_NSFileManagerURLsForDirectoryInDomains(in pManager as ObjcId, in pDirectory as ObjcId , in pDomains as String) returns ObjcId binds to "objc:NSFileManager.-URLsForDirectory:inDomains:"
+foreign handler ObjC_NSFileManagerFileExistsAtPath(in pManager as ObjcId, in pPath as ObjcId) returns CBool binds to "objc:NSFileManager.-fileExistsAtPath:"
+foreign handler ObjC_NSFileManagerRemoveItemAtURL(in pManager as ObjcId, in pURL as ObjcId, in pError as ObjcId) returns CBool binds to "objc:NSFileManager.-removeItemAtURL:error:"
+foreign handler ObjC_NSFileManagerMoveItemAtURL(in pManager as ObjcId, in pSrc as ObjcId, in pDst as ObjcId, in pError as ObjcId) returns CBool binds to "objc:NSFileManager.-moveItemAtURL:toURL:error:"
+
+-- NSArray
+foreign handler ObjC_NSArrayFirstObject(in pArray as ObjcId) returns ObjcId binds to "objc:NSArray.-firstObject"
+
+-- NSError
+foreign handler ObjC_NSErrorLocalizedDescription(in pError as ObjcId) returns ObjcId binds to "objc:NSError.-localizedDescription"
+
+constant kNSDocumentDirectory is 9
+constant kNSUserDomainMask is 1
+
+-- Block and task retention
+private variable mTask as optional ObjcObject
+private variable mBlock as optional ObjcBlockPointer
+
+-- Block handler type matching ^(NSURL *, NSURLResponse *, NSError *)
+handler type DownloadCompletionBlock(in pLocation as ObjcId, in pResponse as ObjcId, in pError as ObjcId) returns nothing
+
+public handler DownloadComplete(in pLocation as ObjcId, in pResponse as ObjcId, in pError as ObjcId) returns nothing
+   if pError is not nothing then
+      variable tErrorDesc as ObjcId
+      unsafe
+         log "called back, error"
+
+         put ObjC_NSErrorLocalizedDescription(pError) into tErrorDesc
+      post "urlDownloadFailed" to sTarget with [tErrorDesc] --  'my script object' is NOT allowed for Library modules
+      return
+     end unsafe
+   end if
+   log "called back, no error"
+/*
+   if not ObjC_NSObjectIsKindOfClass(pResponse, ObjC_NSHTTPURLResponseClass()) then
+      post "urlDownloadFailed" to sTarget with ["Unexpected response type"]
+      return
+   end if
+
+   variable tStatus as String
+   put ObjC_NSHTTPURLResponseStatusCode(pResponse) into tStatus
+
+   if tStatus < 200 or tStatus >= 300 then
+      post "urlDownloadFailed" to sTarget with ["HTTP status" && tStatus]
+      return
+   end if
+
+   variable tFileManager as ObjcId
+   put ObjC_NSFileManagerDefaultFileManager() into tFileManager
+   variable tDocsURL as ObjcId
+   put ObjC_NSArrayFirstObject( ObjC_NSFileManagerURLsForDirectoryInDomains(tFileManager, kNSDocumentDirectory, kNSUserDomainMask) ) into tDocsURL
+   variable tSavedURL as ObjcId
+   put ObjC_NSURLByAppendingPathComponent(tDocsURL, ObjC_NSURLLastPathComponent(pLocation)) into tSavedURL
+
+   if ObjC_NSFileManagerFileExistsAtPath(tFileManager, ObjC_NSURLPath(tSavedURL)) then
+      ObjC_NSFileManagerRemoveItemAtURL(tFileManager, tSavedURL, nothing)
+   end if
+   ObjC_NSFileManagerMoveItemAtURL(tFileManager, pLocation, tSavedURL, nothing)
+   variable tSavedPath as String
+   put ObjC_NSStringUTF8String(ObjC_NSURLPath(tSavedURL)) into tSavedPath
+   */
+   -- post "urlDownloadFinished"  to sTarget with [tSavedPath]
+   post "urlDownloadTaskEnded" to sTarget
+end handler
+
+variable sDownloadCompleteCallbackPtr as optional ObjcBlockPointer
+private variable sTarget as ScriptObject
+
+public handler DownloadFileFromURL(in pSavePath as String, in pURL as String) returns nothing
+   variable tURL as ObjcId
+   variable tState as CUint
+   variable tNSURLSessionTaskPriority as NaturalFloat
+   variable tExpectedBytes as Number
+   variable tBytesReceived as Number
+
+   put the caller into sTarget
+   log sTarget
+   log pURL
+   CreateObjcBlockPointerFromHandler( DownloadComplete , sDownloadCompleteCallbackPtr)
+   log sDownloadCompleteCallbackPtr
+   unsafe
+      put ObjC_NSURLSessionDownloadTaskWithURL( ObjC_NSURLSessionSharedSession(), ObjC_NSURLWithString( StringToNSString(pURL) ) ) into mTask
+      -- put ObjC_NSURLSessionDownloadTaskWithURLCompletion( ObjC_NSURLSessionSharedSession(), ObjC_NSURLWithString( StringToNSString(pURL) ), sDownloadCompleteCallbackPtr ) into mTask
+      LogNSObjectReflection(mTask)
+   --      put ObjC_NSURLSessionTaskGetPriority(mTask) into tNSURLSessionTaskPriority
+   --       log tNSURLSessionTaskPriority
+     -- NSURLSessionTaskPriorityLow, NSURLSessionTaskPriorityHigh
+     put ObjC_NSURLSessionTaskState(mTask) into tState
+     log tState -- should be 1 meaning it's not doing anything yet
+      /*   STATE Enum
+      = 0, NSURLSessionTaskStateRunning The task is currently being serviced by the session
+      = 1, NSURLSessionTaskStateSuspended task object is not doing anything yet or is paused
+      = 2, NSURLSessionTaskStateCanceling The task has been told to cancel. The session will receive a URLSession:task:didCompleteWithError: message.
+      = 3, NSURLSessionTaskStateCompleted The task has completed and the session will receive no more delegate notifications
+      -- AVAILABLE macos(10.9), ios(7.0), watchos(2.0), tvos(9.0)
+      */
+      ObjC_NSURLSessionTaskResume(mTask)
+      put ObjC_NSURLSessionTaskGetPriority(mTask) into tNSURLSessionTaskPriority
+      log tNSURLSessionTaskPriority
+
+      put ObjC_NSURLSessionTaskCountOfBytesExpectedToReceive(mTask) into tExpectedBytes
+      put ObjC_NSURLSessionTaskCountOfBytesReceived(mTask) into tBytesReceived
+      log [tBytesReceived, tExpectedBytes ]
+
+      put ObjC_NSURLSessionTaskState(mTask) into tState
+      log tState -- should be 0 for running
+
+   end unsafe
+end handler
+
+----------------------  NSDistributedNotificationCenter
+private foreign handler objC_NSDistributedNotificationCenterDefaultCenter() returns ObjcId binds to "objc:NSDistributedNotificationCenter.+defaultCenter"
+private foreign handler objC_NSDistributedNotificationCenterPostNotificationNameObject(in defaultCenter as ObjcId, in notificationName as ObjcId, in notificationObject as ObjcId) returns nothing binds to "objc:NSDistributedNotificationCenter.-postNotificationName:object:"
+public handler DownloadFileFinished(in pathToFile as String) returns nothing
+	if (the operating system is "mac") then
+		variable defaultCenter as ObjcId
+		unsafe
+			put objC_NSDistributedNotificationCenterDefaultCenter() into defaultCenter
+			objC_NSDistributedNotificationCenterPostNotificationNameObject( defaultCenter, StringToNSString("com.apple.DownloadFileFinished"), StringToNSString(pathToFile))
+		end unsafe
+	end if
+end handler
+
+----------------------  NSObject ------------------------------------------------------------------------------
+private foreign handler objC_NSObjectRetain(in pNSObj as ObjcId) returns ObjcId binds to "objc:NSObject.-retain"
+private foreign handler objC_NSObjectAutoRealease(in pNSObj as ObjcId) returns ObjcId binds to "objc:NSObject.-autorelease"
+private foreign handler objC_NSObjectRelease(in pNSObj as ObjcId) returns nothing binds to "objc:NSObject.-release"
+
+private foreign handler objC_NSObjectGetDescription(in pNSObj as ObjcId) returns ObjcId binds to "objc:NSObject.description"
+private foreign handler objC_NSObjectDescription(in pNSObj as optional ObjcId) returns ObjcId binds to "objc:NSObject.description"
+private foreign handler objC_NSObjectClassDescription(in pNSObject as ObjcId) returns optional ObjcId binds to "objc:NSObject.-classDescription"
+private foreign handler ObjC_NSObjectGetAttributeKeys( in pNSObjct as ObjcId) returns optional ObjcId binds to "objc:NSObject.-attributeKeys"
+private foreign handler objC_NSObjectAttributeKeys(in pNSObject as ObjcId) returns optional ObjcId binds to "objc:NSObject.attributeKeys"
+
+private foreign handler objC_NSObjectClassName(in pNSObj as ObjcId) returns ObjcId binds to "objc:NSObject.className"
+private foreign handler ObjC_NSObjectGetClassNamed( in pNSClassName as ObjcId) returns optional ObjcId binds to "objc:NSObject.-classNamed:"
+public foreign handler objC_NSObjectsGetClassDescriptionForClass(in pClasss as ObjcId) returns optional ObjcRetainedId binds to "objc:NSClassDescription.+classDescriptionForClass:"
+-- private foreign handler objC_NSObjectGetSuperClass(in pNSObj as ObjcId) returns ObjcRetainedId binds to "c:NObject.+superclass:"
+private foreign handler objC_NSObjectGetSuperClass(in pNSObj as ObjcId) returns ObjcId binds to "objc:NSObject.superclass"
+-- private foreign handler objC_NSObjectGetSuperClass(in pNSObj as ObjcId) returns ObjcRetainedId binds to "c:NObject.+superclass:"
+private foreign handler ObjC_NSObjectIsKindOfClass(in pObject as ObjcId, in pClass as ObjcId) returns CBool binds to "objc:NSObject.-isKindOfClass:"
+
+private foreign handler objC_NSObjectSetValueForKey(in pAVAUSampler as ObjcId, in pValue as ObjcId, in pSelector as ObjcId) returns optional ObjcId binds to "objc:NSObject.-setValue:forKey:"
+private foreign handler objC_NSObjectGetValueForKey(in pNSObject as ObjcId, in pSelector as ObjcId) returns optional ObjcId binds to "objc:NSObject.-valueForKey:"
+
+---------------------  NSError
+private foreign handler objC_NSErrorAlloc() returns ObjcRetainedId binds to "objc:NSError.+alloc"
+-- private foreign handler objC_NSErrorAlloc() returns ObjcId binds to "objc:NSError.+alloc"
+
+private foreign handler c_NSClassFromString(in pClassNameString as ObjcId) returns ObjcId binds to "c:NSClassFromString"
+private foreign handler c_class_copyPropertyList(in pClass as ObjcId, out pCount as UInt32) returns optional Pointer binds to "c:class_copyPropertyList"
+
+public handler LogNSObjectReflection(in pNSObj as optional ObjcId)
+
+   variable tOSStatus as CSInt
+   variable tNSStrObj as optional ObjcId
+   variable tNSObjB as optional ObjcId
+   variable tStr as optional String
+   variable tClass as ObjcId
+   variable tPropsCount as optional UInt32
+   variable tClassDescription as optional ObjcId
+   variable tListNSObj as optional ObjcId
+   variable tListOpaquePtr as optional Pointer -- to an array of 'objc_property_t'
+   variable tListArray as optional Array
+   variable tList as optional List
+   variable tString as optional ZStringNative
+   variable tCStringPtr as optional Pointer
+   variable tSuccess as CBool
+   variable rOutArrayPtr as optional Pointer
+
+   if pNSObj is not nothing then
+      unsafe
+         put objC_NSObjectClassName(pNSObj) into tNSStrObj
+         put StringFromNSString(tNSStrObj) into tStr
+         log ["Class Name" , tStr]
+         put c_NSClassFromString(tNSStrObj) into tClass
+
+         put objC_NSObjectGetSuperClass(pNSObj) into tNSObjB
+         put objC_NSObjectClassName(tNSObjB) into tNSStrObj
+         put StringFromNSString(tNSStrObj) into tStr
+         log ["SuperClass" , tStr]
+
+         put objC_NSObjectGetDescription(pNSObj) into tNSStrObj
+         put StringFromNSString(tNSStrObj) into tStr
+         log ["Description" , tStr]
+
+         -- GetNSObjectAttributeKeys(pNSObj)
+         put ObjC_NSObjectGetAttributeKeys(pNSObj) into tListNSObj
+         -- put ListFromNSArray(tNSObjB) into tList
+         if tListNSObj is not nothing then
+            log  ["AttributeKeys obj" , tListNSObj]
+            put StringFromNSString(tListNSObj) into tStr
+            log ["AttributeKeys" , tStr]
+         end if
+         put c_class_copyPropertyList(tClass,tPropsCount) into tListOpaquePtr
+         log ["Props List Count and Pointer", tPropsCount,tListOpaquePtr ]
+            --if tPropsCount is not 0 then
+               -- put PointerToObjcObject(tListOpaquePtr) into tListNSObj
+               --   put c_CFArrayCreate(nothing, tListOpaquePtr, tPropsCount, nothing) into tListNSObj
+               -- log tListNSObj
+               -- put ListFromNSArray(tListNSObj) into tList
+               -- log tList
+
+               -- put objC_NSObjectClassName(tListNSObj) into tNSStrObj
+               -- put StringFromNSString(tNSStrObj) into tStr
+               -- log ["Class Name" , tStr]
+               -- put MCArrayCreateWithCFArrayRef(tListOpaquePtr,true,tList) into tSuccess
+               -- log ["Props List", tList ]
+
+                -- LogNSObjectClassName(tListNSObj)
+                -- log "Has Props"
+               -- PointerToPropsList(rOutArrayPtr,tListOpaquePtr,8)
+               -- log ["Out Array", rOutArrayPtr]
+               -- put PointerToObjcObject(tListOpaquePtr) into tListNSObj
+               -- put ListFromNSArray(tListNSObj) into tList
+               -- log tList
+               -- put c_property_getName(tPropertyPtr) into tCStringPtr
+               -- log ["Name String Ptr", tCStringPtr]
+               -- put MCStringCreateWithCString(tCStringPtr,tString) into tSuccess
+               -- log [tSuccess,tString ]
+               -- put PointerToObjcObject(tListOpaquePtr) into tListNSObj
+               -- log tListNSObj
+               -- LogNSObjectClassName(tListNSObj)
+               -- log tString
+            -- end if
+
+            -- const char * property_getName(objc_property_t property);
+            -- unsigned int outCount, i;
+            -- objc_property_t *properties = class_copyPropertyList([TestClass class], &outCount);
+            --for (i = 0; i < outCount; i++) {
+            --    objc_property_t property = properties[i];
+            --    fprintf(stdout, "%s %s\n", property_getName(property), property_getAttributes(property)); }
+
+            -- put ListFromNSArray(tListOpaquePtr) into tList
+            -- log tList
+         --   put PointerToObjcObject(tListOpaquePtr) into tListNSObj
+         -- put ListFromNSArray[tListNSObj] into tList
+         --   log tList
+
+            --put objC_NSObjectsGetClassDescriptionForClass(tClass) into tClassDescription
+            -- log ["Class Description Obj", tClassDescription]
+            -- objC_lookUpClass(pClass)
+            -- LogNSObjectClassName(tClassDescription)
+            -- put objC_NSObjectGetAttributeKeys(tClassDescription) into tListNSObj
+            -- attributeKeys
+
+            -- Get the list of methodss
+            -- objc_sendMessage(tClass, "methods")
+            -- put ListFromNSArray(tListNSObj) into tList
+            -- log tList
+      end unsafe
+   else
+      log "No Object"
+   end if
+end handler
+
+private foreign handler objC_NSArrayComponentsJoinedByString(in pObj as ObjcId, in pSeperator as ObjcId) returns ObjcId binds to "objc:NSArray.-componentsJoinedByString:"
+public handler NSArrayToString(in pNSArray as ObjcObject) returns String
+  variable tNSArray as ObjcObject
+  variable tNSString as ObjcObject
+  variable tStr as String
+  put "\n" into tStr
+  unsafe
+    put ObjC_NSArrayComponentsJoinedByString(pNSArray, StringToNSString(tStr)) into tNSString
+  end unsafe
+  return StringFromNSString(tNSString)
+end handler
+
+private foreign handler ObjC_NSApplicationSharedApplication() returns ObjcId binds to "objc:NSApplication.+sharedApplication"
+private foreign handler objC_NSApplicationWindowWithWindowNumber(in pSharedApplication as ObjcId, in pWindowNumber as CLong) returns ObjcId binds to "objc:NSApplication.-windowWithWindowNumber:"
+private handler NSWindowFromWindowID(in tWindowID as Integer) returns ObjcId
+	variable tNSSharedApplication as ObjcId
+	variable tNSWindow as ObjcId
+	unsafe
+	put objC_NSApplicationSharedApplication() into tNSSharedApplication
+	put objC_NSApplicationWindowWithWindowNumber(tNSSharedApplication, tWindowID) into tNSWindow
+	end unsafe
+	return tNSWindow
+end handler
+
+end library
+
+-- Callbacks Posted to Script Object
+-- private variable sTarget as ScriptObject
+--	put the caller into sTarget
+
+-- urlDownloadFinished savedPath -- File moved to Documents successfully
+-- urlDownloadFailed errorDescription -- Any error — network, HTTP status, or response type
+
+/**
+EXAMPLE:
+DownloadFileFromURL "https://example.com/path/to/yourfile.zip"
+
+on urlDownloadFinished pPath
+   answer "Saved to:" && pPath
+end urlDownloadFinished
+
+on urlDownloadFailed pError
+   answer error pError
+end urlDownloadFailed
+
+**/
+
+-- The module is intentionally minimal
+-- mTask and mBlock are module-level variables solely to keep both retained until the completion block fires,
+-- after which they can be safely released by setting them to nothing inside DownloadComplete if desired.
