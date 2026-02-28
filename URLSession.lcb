@@ -148,6 +148,26 @@ public handler DownloadFileFromURL(in pSavePath as String, in pURL as String) re
    end unsafe
 end handler
 
+public handler checkProgress() returns nothing
+	if (the operating system is "mac") then
+		variable tExpectedBytes as Number
+      variable tBytesReceived as Number
+      variable tState as Integer
+
+      if mTask is not nothing then
+		unsafe
+         put ObjC_NSURLSessionTaskCountOfBytesExpectedToReceive(mTask) into tExpectedBytes
+         put ObjC_NSURLSessionTaskCountOfBytesReceived(mTask) into tBytesReceived
+         log [tBytesReceived, tExpectedBytes ]
+
+         put ObjC_NSURLSessionTaskState(mTask) into tState
+         log tState -- should be 0 for running
+         -- 3 means task finished
+		end unsafe
+      end if
+	end if
+end handler
+
 ----------------------  NSDistributedNotificationCenter
 private foreign handler objC_NSDistributedNotificationCenterDefaultCenter() returns ObjcId binds to "objc:NSDistributedNotificationCenter.+defaultCenter"
 private foreign handler objC_NSDistributedNotificationCenterPostNotificationNameObject(in defaultCenter as ObjcId, in notificationName as ObjcId, in notificationObject as ObjcId) returns nothing binds to "objc:NSDistributedNotificationCenter.-postNotificationName:object:"

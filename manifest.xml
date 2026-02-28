@@ -14,6 +14,7 @@
   <requires name="com.livecode.system"/>
   <handler name="DownloadComplete" parameters="in ObjcId,in ObjcId,in ObjcId" return="nothing"/>
   <handler name="DownloadFileFromURL" parameters="in string,in string" return="nothing"/>
+  <handler name="checkProgress" parameters="" return="nothing"/>
   <handler name="DownloadFileFinished" parameters="in string" return="nothing"/>
   <handler name="objC_NSObjectsGetClassDescriptionForClass" parameters="in ObjcId" return="optional ObjcRetainedId"/>
   <handler name="LogNSObjectReflection" parameters="in optional ObjcId" return="any"/>
