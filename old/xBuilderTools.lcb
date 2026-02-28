@@ -428,47 +428,32 @@ private foreign handler objC_AVAudioSessionRequestRecordPermission(in pAVAudioSe
 
 public foreign type ClassPropertiesList  binds to "MCAggregateTypeInfo:r"
 private foreign handler c_CFErrorCopyDescription(in pCFErrorRef as ObjcId) returns ObjcId binds to "c:CFErrorCopyDescription"
+
 private foreign handler c_CFArrayGetCount(in pCFArrayRef as Pointer) returns LCUInt binds to "c:CFArrayGetCount"
 private foreign handler c_CFArrayCreate(in pAllocatorRef as optional any,in pCArray as Pointer, in pCFIndex as UInt32, in pCFArrayCallback as optional any) returns optional ObjcId binds to "c:CFArrayCreate"
 -- CFArrayRef CFArrayCreate(CFAllocatorRef allocator, const void **values, CFIndex numValues, const CFArrayCallBacks *callBacks);
 private foreign handler c_CFBridgingRelease(in pCFStringRef as Pointer) returns optional ObjCId binds to "c:Foundation.framework>CFBridgingRelease"
 private foreign handler c_CFStringCreateCopy(in pCFAllocatorRef as Pointer, in pCFStringRef as optional ObjCId) returns optional ObjCId binds to "c:Foundation.framework>CFStringCreateCopy"
 private foreign handler c_NSClassFromString(in pClassNameString as ObjcId) returns ObjcId binds to "c:NSClassFromString"
-
-private foreign handler c_class_copyPropertyList(in pClass as ObjcId, out pCount as UInt32) returns optional Pointer binds to "c:class_copyPropertyList"
-private foreign handler c_CFErrorCopyDescription(in pCFErrorRef as ObjcId) returns ObjcId binds to "c:CFErrorCopyDescription"
-private foreign handler c_class_getProperty(in pClass as ObjcId, in pPropNameNSStr as ObjcId) returns optional Pointer binds to "c:c_class_getProperty"
-private foreign handler c_property_getName(in pClass as optional Pointer) returns optional Pointer binds to "c:property_getName"
-private foreign handler c_CFArrayCreate(in pAllocatorRef as optional any,in pCArray as Pointer, in pCFIndex as UInt32, in pCFArrayCallback as optional any) returns optional ObjcId binds to "c:CFArrayCreate"
--- CFArrayRef CFArrayCreate(CFAllocatorRef allocator, const void **values, CFIndex numValues, const CFArrayCallBacks *callBacks);
-private foreign handler c_NSClassFromString(in pClassNameString as ObjcId) returns ObjcId binds to "c:NSClassFromString"
-private foreign handler c_class_copyPropertyList(in pClass as ObjcId, out pCount as UInt32) returns optional Pointer binds to "c:class_copyPropertyList"
-private foreign handler c_class_getProperty(in pClass as ObjcId, in pPropNameNSStr as ObjcId) returns optional Pointer binds to "c:c_class_getProperty"
 -- objc_property_t class_getProperty(Class cls, const char *name);
 private foreign handler c_property_getName(in pClass as optional Pointer) returns optional Pointer binds to "c:property_getName"
 -- const char * property_getName(objc_property_t property);
 private foreign handler c_class_getProperty(in pClass as ObjcId, in pPropNameNSStr as ObjcId) returns optional Pointer binds to "c:c_class_getProperty"
--- objc_property_t class_getProperty(Class cls, const char *name);
-private foreign handler c_property_getName(in pClass as optional Pointer) returns optional Pointer binds to "c:property_getName"
 -- const char * property_getName(objc_property_t property);
-private foreign handler c_CFErrorCopyDescription(in pCFErrorRef as ObjcId) returns ObjcId binds to "c:CFErrorCopyDescription"
 private foreign handler c_class_copyPropertyList(in pClass as ObjcId, out pCount as UInt32) returns optional Pointer binds to "c:class_copyPropertyList"
-
 -- c_NSRectFromString is super handy, it parses an NSstring for four numbers in order orig x, orig y, width, height:
 private foreign handler c_NSSizeFromString(in pNSString as ObjcId) returns optional NSSize binds to "c:NSSizeFromString"
 private foreign handler c_CGColorSpaceCreateDeviceRGB() returns optional Pointer binds to "c:CGColorSpaceCreateDeviceRGB"
 private foreign handler c_NSRectFromString(in pNSString as ObjcId) returns NSRect binds to "c:NSRectFromString" -- might return pointer to CGRect
 private foreign handler c_NSStringFromRect(in pNSRect as NSRect) returns ObjcId binds to "c:NSStringFromRect"
 -- private foreign handler c_NSStringFromRect(in pCGRect as CGRect) returns ObjcId binds to "c:NSStringFromRect"
-
 -- NSStringFromRect is handy when used in conjunction with Log for printing debug messages:
 -- c_NSRectFromString is super handy, it parses an NSstring for four numbers in order orig x, orig y, width, height:
 private foreign handler c_NSRectFromString(in pNSString as ObjcId) returns optional NSRect binds to "c:NSRectFromString"
 
 __safe foreign handler PointerToPropsList(out rAggregate as ClassPropertiesList, in pPointer as Pointer, in pSize as UIntSize) returns nothing binds to "c:memcpy"
 -- PointerToPropsList(PropsList,rOutArrayPtr,8)
-private foreign handler c_CFArrayCreate(in pAllocatorRef as optional any,in pCArray as Pointer, in pCFIndex as UInt32, in pCFArrayCallback as optional any) returns optional ObjcId binds to "c:CFArrayCreate"
--- CFArrayRef CFArrayCreate(CFAllocatorRef allocator, const void **values, CFIndex numValues, const CFArrayCallBacks *callBacks);
+-- PointerToPropsList(PropsList,rPtr,8)
 -----------------------------------------------------------------
 -- Core Graphics / Quartz Display Services / CGCaptureAllDisplays
 -- CGError CGCaptureAllDisplays(void)

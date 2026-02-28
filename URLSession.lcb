@@ -58,7 +58,7 @@ foreign handler ObjC_NSURLResponseSuggestedFilename(in pResponse as ObjcId) retu
 
 -- NSHTTPURLResponse -- the HTTP specific class obj
 foreign handler ObjC_NSHTTPURLResponseClass() returns ObjcId binds to "objc:NSHTTPURLResponse.+class"
-foreign handler ObjC_NSHTTPURLResponseStatusCode(in pResponse as ObjcId) returns ObjcId binds to "objc:NSHTTPURLResponse.-statusCode:"
+foreign handler ObjC_NSHTTPURLResponseStatusCode(in pResponse as ObjcId) returns CUint binds to "objc:NSHTTPURLResponse.-statusCode:"
 
 -- NSFileManager
 foreign handler ObjC_NSFileManagerDefaultFileManager() returns ObjcId binds to "objc:NSFileManager.+defaultManager"
@@ -80,54 +80,65 @@ private variable mTask as optional ObjcObject
 private variable mBlock as optional ObjcBlockPointer
 
 -- Block handler type matching ^(NSURL *, NSURLResponse *, NSError *)
-public handler type DownloadCompletionBlock( in pContext as optional ObjcBlockPointer, in pLocation as ObjcId, in pResponse as ObjcId, in pError as optional ObjcId) returns nothing
-public handler DownloadComplete( in pContext as optional ObjcBlockPointer, in pLocation as ObjcId, in pResponse as ObjcId, in pError as optional ObjcId) returns nothing
-   if pError is not nothing then
-      variable tErrorDesc as ObjcId
+-- BlockPointer, NSURL *location, NSURLResponse *response, NSError *error
+public handler type DownloadCompletionBlock( in pContext as ObjcBlockPointer, in pLocation as optional ObjcId, in pResponse as ObjcId, in pError as optional ObjcId) returns nothing
+public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation as optional ObjcId, in pResponse as optional ObjcId, in pError as optional ObjcId) returns nothing
+      log "--- pLocation: "
+      LogNSObjectReflection(pLocation)
+
+       if pError is not nothing then
+         -- variable tErrorDesc as ObjcId
+         -- unsafe
+            log "---- pError: "
+             -- put ObjC_NSErrorLocalizedDescription(pError) into tErrorDesc
+             LogNSObjectReflection(pError)
+             post "urlDownloadFailed" to sTarget -- with [tErrorDesc]
+        -- end unsafe
+        -- return
+      end if
+      -- log "called back, no error"
+      /*
+      if not ObjC_NSObjectIsKindOfClass(pResponse, ObjC_NSHTTPURLResponseClass()) then
+         post "urlDownloadFailed" to sTarget with ["Unexpected response type"]
+         return
+      end if
+      */
+      LogNSObjectReflection( pResponse )
+      /*
+      variable tStatus as CUint
       unsafe
-         log "called back, error"
+        put ObjC_NSHTTPURLResponseStatusCode( pResponse ) into tStatus
+      end unsafe
+      if tStatus < 200 or tStatus >= 300 then
+         post "urlDownloadFailed" to sTarget with ["HTTP status" && tStatus]
+         return
+      end if
+      */
+      /*
+      variable tFileManager as ObjcId
+      put ObjC_NSFileManagerDefaultFileManager() into tFileManager
+      variable tDocsURL as ObjcId
+      put ObjC_NSArrayFirstObject( ObjC_NSFileManagerURLsForDirectoryInDomains(tFileManager, kNSDocumentDirectory, kNSUserDomainMask) ) into tDocsURL
+      variable tSavedURL as ObjcId
+      put ObjC_NSURLByAppendingPathComponent(tDocsURL, ObjC_NSURLLastPathComponent(pLocation)) into tSavedURL
 
-         put ObjC_NSErrorLocalizedDescription(pError) into tErrorDesc
-      post "urlDownloadFailed" to sTarget with [tErrorDesc] --  'my script object' is NOT allowed for Library modules
-      return
-     end unsafe
-   end if
-   log "called back, no error"
-/*
-   if not ObjC_NSObjectIsKindOfClass(pResponse, ObjC_NSHTTPURLResponseClass()) then
-      post "urlDownloadFailed" to sTarget with ["Unexpected response type"]
-      return
-   end if
+      if ObjC_NSFileManagerFileExistsAtPath(tFileManager, ObjC_NSURLPath(tSavedURL)) then
+         ObjC_NSFileManagerRemoveItemAtURL(tFileManager, tSavedURL, nothing)
+      end if
+      ObjC_NSFileManagerMoveItemAtURL(tFileManager, pLocation, tSavedURL, nothing)
+      variable tSavedPath as String
+      put ObjC_NSStringUTF8String(ObjC_NSURLPath(tSavedURL)) into tSavedPath
 
-   variable tStatus as String
-   put ObjC_NSHTTPURLResponseStatusCode(pResponse) into tStatus
+      -- post "urlDownloadFinished"  to sTarget with [tSavedPath]
+      */
 
-   if tStatus < 200 or tStatus >= 300 then
-      post "urlDownloadFailed" to sTarget with ["HTTP status" && tStatus]
-      return
-   end if
-
-   variable tFileManager as ObjcId
-   put ObjC_NSFileManagerDefaultFileManager() into tFileManager
-   variable tDocsURL as ObjcId
-   put ObjC_NSArrayFirstObject( ObjC_NSFileManagerURLsForDirectoryInDomains(tFileManager, kNSDocumentDirectory, kNSUserDomainMask) ) into tDocsURL
-   variable tSavedURL as ObjcId
-   put ObjC_NSURLByAppendingPathComponent(tDocsURL, ObjC_NSURLLastPathComponent(pLocation)) into tSavedURL
-
-   if ObjC_NSFileManagerFileExistsAtPath(tFileManager, ObjC_NSURLPath(tSavedURL)) then
-      ObjC_NSFileManagerRemoveItemAtURL(tFileManager, tSavedURL, nothing)
-   end if
-   ObjC_NSFileManagerMoveItemAtURL(tFileManager, pLocation, tSavedURL, nothing)
-   variable tSavedPath as String
-   put ObjC_NSStringUTF8String(ObjC_NSURLPath(tSavedURL)) into tSavedPath
-   */
-   -- post "urlDownloadFinished"  to sTarget with [tSavedPath]
-   post "urlDownloadTaskEnded" to sTarget
+      post "urlDownloadTaskEnded" to sTarget
+    -- end unsafe
 end handler
 
 variable sDownloadCompleteCallbackPtr as optional ObjcBlockPointer
 private variable sTarget as ScriptObject
-public handler DownloadFileFromURL(in pSavePath as String, in pURL as String) returns nothing
+public handler DownloadFileFromURL(in pURL as String, in pSavePath as String ) returns nothing
    variable tURL as ObjcId
    variable tState as CUint
    variable tNSURLSessionTaskPriority as NaturalFloat
@@ -135,8 +146,12 @@ public handler DownloadFileFromURL(in pSavePath as String, in pURL as String) re
    variable tBytesReceived as Number
 
    put the caller into sTarget
-   log sTarget
-   log pURL
+   log ["callback to",sTarget]
+   log ["URL",pURL]
+   if pURL is the empty string then
+      log "no url param"
+      return
+   end if
    CreateObjcBlockPointerFromHandler( DownloadComplete , sDownloadCompleteCallbackPtr)
    unsafe
       -- put ObjC_NSURLSessionDownloadTaskWithURL( ObjC_NSURLSessionSharedSession(), ObjC_NSURLWithString( StringToNSString(pURL) ) ) into mTask
@@ -145,8 +160,8 @@ public handler DownloadFileFromURL(in pSavePath as String, in pURL as String) re
       --      put ObjC_NSURLSessionTaskGetPriority(mTask) into tNSURLSessionTaskPriority
       --       log tNSURLSessionTaskPriority
      -- NSURLSessionTaskPriorityLow, NSURLSessionTaskPriorityHigh
-     put ObjC_NSURLSessionTaskState(mTask) into tState
-     log tState -- should be 1 meaning it's not doing anything yet
+    --  put ObjC_NSURLSessionTaskState(mTask) into tState
+     -- log tState -- should be 1 meaning it's not doing anything yet
       /*   STATE Enum
       = 0, NSURLSessionTaskStateRunning The task is currently being serviced by the session
       = 1, NSURLSessionTaskStateSuspended task object is not doing anything yet or is paused
@@ -156,11 +171,11 @@ public handler DownloadFileFromURL(in pSavePath as String, in pURL as String) re
       */
       ObjC_NSURLSessionTaskResume(mTask)
       put ObjC_NSURLSessionTaskGetPriority(mTask) into tNSURLSessionTaskPriority
-      log tNSURLSessionTaskPriority
+      log ["tNSURLSessionTaskPriority", tNSURLSessionTaskPriority]
 
       put ObjC_NSURLSessionTaskCountOfBytesExpectedToReceive(mTask) into tExpectedBytes
       put ObjC_NSURLSessionTaskCountOfBytesReceived(mTask) into tBytesReceived
-      log [tBytesReceived, tExpectedBytes ]
+      log [ "Bytes expected",tExpectedBytes,"bytes recieved",tBytesReceived ]
 
       put ObjC_NSURLSessionTaskState(mTask) into tState
       log tState -- should be 0 for running
@@ -171,11 +186,11 @@ public handler checkProgress() returns nothing
 	if (the operating system is "mac") then
 		variable tExpectedBytes as Number
       variable tBytesReceived as Number
-      variable tState as Integer
-      variable tResponseObj as ObjcId
-      variable tProgressObj as ObjcId
-      variable tNSStringObj as ObjcId
-      variable tStr as String
+      variable tState as optional Integer
+      variable tResponseObj as optional ObjcId
+      variable tProgressObj as optional ObjcId
+      variable tNSStringObj as optional ObjcId
+      variable tStr as optional String
 
       if mTask is not nothing then
 		unsafe
