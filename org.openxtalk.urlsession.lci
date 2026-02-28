@@ -9,7 +9,8 @@ import module org.openxtalk.urlsession
   use com.livecode.string
   use com.livecode.type
   use com.livecode.system
-  handler DownloadComplete(in pLocation as ObjcId, in pResponse as ObjcId, in pError as ObjcId) returns nothing
+  handler type DownloadCompletionBlock(in pContext as optional ObjcBlockPointer, in pLocation as ObjcId, in pResponse as ObjcId, in pError as optional ObjcId) returns nothing
+  handler DownloadComplete(in pContext as optional ObjcBlockPointer, in pLocation as ObjcId, in pResponse as ObjcId, in pError as optional ObjcId) returns nothing
   handler DownloadFileFromURL(in pSavePath as String, in pURL as String) returns nothing
   handler checkProgress() returns nothing
   handler DownloadFileFinished(in pathToFile as String) returns nothing
