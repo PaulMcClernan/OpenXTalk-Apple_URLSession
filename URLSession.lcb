@@ -83,6 +83,8 @@ private variable mBlock as optional ObjcBlockPointer
 -- BlockPointer, NSURL *location, NSURLResponse *response, NSError *error
 public handler type DownloadCompletionBlock( in pContext as ObjcBlockPointer, in pLocation as optional ObjcId, in pResponse as ObjcId, in pError as optional ObjcId) returns nothing
 public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation as optional ObjcId, in pResponse as optional ObjcId, in pError as optional ObjcId) returns nothing
+   variable tNSStringObj as optional ObjcId
+   variable tStr as optional String
        if pError is not nothing then
          variable tErrorDesc as ObjcId
          variable tErrorStr as String
@@ -109,7 +111,8 @@ public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation a
       log "--- pLocation:\n"
       LogNSObjectReflection(pLocation)
       log "\n"
-      log "---- pRespons:\n"
+      log "---- pResponse:\n"
+
       LogNSObjectReflection( pResponse )
 
       variable tStatus as CULong
@@ -138,8 +141,12 @@ public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation a
 
       -- post "urlDownloadFinished"  to sTarget with [tSavedPath]
       */
-
-      post "urlDownloadTaskEnded" to sTarget
+      unsafe
+         put ObjC_NSURLResponseSuggestedFilename( pResponse ) into tNSStringObj
+      end unsafe
+      put StringFromNSString( tNSStringObj ) into tStr
+      log tStr
+      post "urlDownloadTaskFinished" to sTarget with [tStr]
     -- end unsafe
 end handler
 
@@ -210,11 +217,6 @@ public handler checkProgress() returns nothing
          log tState -- should be 0 for currently running task
          -- 3 means that the task finished but does NOT mean that data transfer was successful
 
-         --  put ObjC_NSURLSessionTaskResponse(mTask) into tResponseObj -- NOPE -- Response obj only comes with delegate or block callback
-         --  log tResponseObj
-         -- put ObjC_NSURLResponseSuggestedFilename( tResponseObj ) into tNSStringObj
-         -- put StringFromNSString( tNSStringObj ) into tStr
-         -- log tStr
          -- currentRequest
 
          -- put ObjC_NSURLSessionTaskProgress(mTask) into tProgressObj -- NSProgess class obj -- works fine but not particularly useful info
