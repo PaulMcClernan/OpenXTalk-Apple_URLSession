@@ -817,8 +817,10 @@ public handler appleScriptObjTests(in pAppleScript as String) returns any
         --return tSuccess
      end if
       --return getFourCharCodeFromUint32(tAttributesArray["NSFileHFSCreatorCode"]) &"\n"& getFourCharCodeFromUint32(tAttributesArray["NSFileHFSTypeCode"])
+
       -- put objC_NSURLGetAbsoluteString(tUserHomeDir) into tNSURLString
       -- put objC_NSURLGetPath(tUserHomeDir) into tNSPath
+
        -- return StringFromNSString(tNSPath)
       -- return StringFromNSString(tUserHomeDir)
       -- put objC_NSURLGetPath(tUserHomeDir) into tNSPath

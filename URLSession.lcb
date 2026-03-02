@@ -10,10 +10,15 @@ foreign handler ObjC_NSStringWithUTF8String(in pBytes as ZStringNative) returns 
 foreign handler ObjC_NSStringUTF8String(in pString as ObjcId) returns ZStringNative binds to "objc:NSString.-UTF8String"
 
 -- NSURL
-foreign handler ObjC_NSURLWithString(in pString as ObjcId) returns ObjcId binds to "objc:NSURL.+URLWithString:"
-foreign handler ObjC_NSURLLastPathComponent(in pURL as ObjcId) returns ObjcId binds to "objc:NSURL.-lastPathComponent"
-foreign handler ObjC_NSURLByAppendingPathComponent(in pURL as ObjcId, in pComponent as ObjcId) returns ObjcId binds to "objc:NSURL.-URLByAppendingPathComponent:"
-foreign handler ObjC_NSURLPath(in pURL as ObjcId) returns ObjcId binds to "objc:NSURL.-path"
+private foreign handler objC_NSURLURLWithString(in pURLString as ObjcId) returns ObjcId binds to "objc:NSURL.+URLWithString:"
+private foreign handler ObjC_NSURLWithString(in pString as ObjcId) returns ObjcId binds to "objc:NSURL.+URLWithString:"
+private foreign handler objC_NSURLfileOrDirURLWithPath(in pPathString as ObjcId, in pIsDir as CBool) returns ObjcId binds to "objc:.NSURL.+fileURLWithPath:isDirectory:"
+private foreign handler objC_NSURLfileURLWithPath(in pPathString as ObjcId) returns ObjcId binds to "objc:NSURL.+fileURLWithPath:"
+private foreign handler objC_NSURLGetAbsoluteString(in pURLString as ObjcId) returns ObjcId binds to "objc:NSURL.absoluteString"
+private foreign handler objC_NSURLGetPath(in pURLString as ObjcId) returns ObjcId binds to "objc:NSURL.path"
+private foreign handler ObjC_NSURLPath(in pURL as ObjcId) returns ObjcId binds to "objc:NSURL.-path"
+private foreign handler ObjC_NSURLLastPathComponent(in pURL as ObjcId) returns ObjcId binds to "objc:NSURL.-lastPathComponent"
+private foreign handler ObjC_NSURLByAppendingPathComponent(in pURL as ObjcId, in pComponent as ObjcId) returns ObjcId binds to "objc:NSURL.-URLByAppendingPathComponent:"
 
 -- NSURLSession
 foreign handler ObjC_NSURLSessionSharedSession() returns ObjcId binds to "objc:NSURLSession.+sharedSession"
@@ -55,6 +60,7 @@ foreign handler ObjC_NSURLSessionTaskCountOfBytesReceived(in pTask as ObjcId) re
 
 -- NSURLResponse -- protocol agnostic reponse obj
 foreign handler ObjC_NSURLResponseSuggestedFilename(in pResponse as ObjcId) returns ObjcId binds to "objc:NSURLResponse.-suggestedFilename"
+foreign handler ObjC_NSURLResponseExpectedContentLength(in pResponse as ObjcId) returns Int64 binds to "objc:NSURLResponse.-expectedContentLength"
 
 -- NSHTTPURLResponse -- the HTTP specific class obj
 foreign handler ObjC_NSHTTPURLResponseClass() returns ObjcId binds to "objc:NSHTTPURLResponse.+class"
@@ -62,8 +68,12 @@ foreign handler ObjC_NSHTTPURLResponseStatusCode(in pResponse as ObjcId) returns
 
 -- NSFileManager
 foreign handler ObjC_NSFileManagerDefaultFileManager() returns ObjcId binds to "objc:NSFileManager.+defaultManager"
-foreign handler ObjC_NSFileManagerURLsForDirectoryInDomains(in pManager as ObjcId, in pDirectory as ObjcId , in pDomains as String) returns ObjcId binds to "objc:NSFileManager.-URLsForDirectory:inDomains:"
-foreign handler ObjC_NSFileManagerFileExistsAtPath(in pManager as ObjcId, in pPath as ObjcId) returns CBool binds to "objc:NSFileManager.-fileExistsAtPath:"
+foreign handler ObjC_NSFileManagerURLsForDirectoryInDomains( in pManager as ObjcId, in pDirectory as ObjcId , in pDomains as String) returns ObjcId binds to "objc:NSFileManager.-URLsForDirectory:inDomains:"
+foreign handler ObjC_NSFileManagerFileExistsAtPath( in pManager as ObjcId, in pPath as ObjcId) returns CBool binds to "objc:NSFileManager.-fileExistsAtPath:"
+foreign handler ObjC_NSFileManagerSizeOfFileAtPath( in pManager as ObjcId, in pPath as ObjcId) returns Int64 binds to "objc:NSFileManager.-sizeOfFileAtPath:"
+foreign handler ObjC_NSFileManagerAttributesOfItemAtPath( in pManager as ObjcId, in pPath as ObjcId) returns Int64 binds to "objc:NSFileManager.-attributesOfItemAtPath"
+-- attrs.size as Int64
+
 foreign handler ObjC_NSFileManagerRemoveItemAtURL(in pManager as ObjcId, in pURL as ObjcId, in pError as ObjcId) returns CBool binds to "objc:NSFileManager.-removeItemAtURL:error:"
 foreign handler ObjC_NSFileManagerMoveItemAtURL(in pManager as ObjcId, in pSrc as ObjcId, in pDst as ObjcId, in pError as ObjcId) returns CBool binds to "objc:NSFileManager.-moveItemAtURL:toURL:error:"
 
@@ -84,23 +94,28 @@ private variable mBlock as optional ObjcBlockPointer
 public handler type DownloadCompletionBlock( in pContext as ObjcBlockPointer, in pLocation as optional ObjcId, in pResponse as ObjcId, in pError as optional ObjcId) returns nothing
 public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation as optional ObjcId, in pResponse as optional ObjcId, in pError as optional ObjcId) returns nothing
    variable tNSStringObj as optional ObjcId
-   variable tStr as optional String
-       if pError is not nothing then
-         variable tErrorDesc as ObjcId
-         variable tErrorStr as String
-         unsafe
-            put ObjC_NSErrorLocalizedDescription(pError) into tErrorDesc
-            log "---- pErrorDesc:"
-            put StringFromNSString( tErrorDesc) into tErrorStr
-            log tErrorStr
-            --  LogNSObjectReflection( tErrorDesc )
+   variable tFileManager as ObjcId
+   variable tLeafNameStr as String
+   variable tTempFilePath as String
+   variable tTempFileSize as Int64
+   variable tExpectedLength as Int64
 
-             log "---- pError:"
-             LogNSObjectReflection(pError)
-             post "urlDownloadFailed" to sTarget with [tErrorStr]
-          end unsafe
-         return
-      end if
+   if pError is not nothing then
+      variable tErrorDesc as ObjcId
+      variable tErrorStr as String
+      unsafe
+         put ObjC_NSErrorLocalizedDescription(pError) into tErrorDesc
+         log "---- pErrorDesc:"
+         put StringFromNSString( tErrorDesc) into tErrorStr
+         log tErrorStr
+         --  LogNSObjectReflection( tErrorDesc )
+
+          log "---- pError:"
+          LogNSObjectReflection(pError)
+          post "urlDownloadFailed" to sTarget with [tErrorStr]
+       end unsafe
+      return
+   end if
       -- log "called back, no error"
       /*
       -- if not ObjC_NSObjectIsKindOfClass(pResponse, ObjC_NSHTTPURLResponseClass()) then
@@ -112,7 +127,6 @@ public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation a
       LogNSObjectReflection(pLocation)
       log "\n"
       log "---- pResponse:\n"
-
       LogNSObjectReflection( pResponse )
 
       variable tStatus as CULong
@@ -120,34 +134,47 @@ public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation a
         put ObjC_NSHTTPURLResponseStatusCode( pResponse ) into tStatus
       end unsafe
       if tStatus < 200 or tStatus >= 300 then
-         post "urlDownloadFailed" to sTarget with ["HTTP status" && tStatus]
+         post "urlDownloadTaskFailed" to sTarget with ["HTTP Status Code" && tStatus]
          return
+      else
+         log ["HTTP Status Code", tStatus ]
       end if
 
-      /*
-      variable tFileManager as ObjcId
-      put ObjC_NSFileManagerDefaultFileManager() into tFileManager
-      variable tDocsURL as ObjcId
-      put ObjC_NSArrayFirstObject( ObjC_NSFileManagerURLsForDirectoryInDomains(tFileManager, kNSDocumentDirectory, kNSUserDomainMask) ) into tDocsURL
-      variable tSavedURL as ObjcId
-      put ObjC_NSURLByAppendingPathComponent(tDocsURL, ObjC_NSURLLastPathComponent(pLocation)) into tSavedURL
-
-      if ObjC_NSFileManagerFileExistsAtPath(tFileManager, ObjC_NSURLPath(tSavedURL)) then
-         ObjC_NSFileManagerRemoveItemAtURL(tFileManager, tSavedURL, nothing)
-      end if
-      ObjC_NSFileManagerMoveItemAtURL(tFileManager, pLocation, tSavedURL, nothing)
-      variable tSavedPath as String
-      put ObjC_NSStringUTF8String(ObjC_NSURLPath(tSavedURL)) into tSavedPath
-
-      -- post "urlDownloadFinished"  to sTarget with [tSavedPath]
-      */
       unsafe
          put ObjC_NSURLResponseSuggestedFilename( pResponse ) into tNSStringObj
+         put StringFromNSString( tNSStringObj ) into tLeafNameStr
+         log ["leafName",tLeafNameStr]
+         put ObjC_NSURLResponseExpectedContentLength( pResponse ) into tExpectedLength
+         log [ "expectedLength", tExpectedLength ]
+         put StringFromNSString( objC_NSURLGetPath( pLocation ) ) into tTempFilePath
+         log ["tempFilePath",tTempFilePath]
+         -- if tTempFilePath is not the empty string then
+         --     put ObjC_NSFileManagerDefaultFileManager() into tFileManager
+         --     put ObjC_NSFileManagerSizeOfFileAtPath( tFileManager, StringToNSString( tTempFilePath ) ) into tTempFileSize
+         --    --  log ["tempFileSize", tTempFileSize]
+         --  end if
+         
+         --put ObjC_NSURLLength( pLocation ) into tBytesReceived
+         --- log [ "tBytesReceived", tBytesReceived ]
+
+         -- (get the NSURL for the downloiaded file in temp folder here)
+         --- move the file to final destination
+         /* Generative AI code still needs checking ---
+         -- variable tDocsURL as ObjcId
+         -- put ObjC_NSArrayFirstObject( ObjC_NSFileManagerURLsForDirectoryInDomains(tFileManager, kNSDocumentDirectory, kNSUserDomainMask) ) into tDocsURL
+         -- variable tSavedURL as ObjcId
+         -- put ObjC_NSURLByAppendingPathComponent(tDocsURL, ObjC_NSURLLastPathComponent(pLocation)) into tSavedURL
+         --   if ObjC_NSFileManagerFileExistsAtPath(tFileManager, ObjC_NSURLPath(tSavedURL)) then
+         --      ObjC_NSFileManagerRemoveItemAtURL(tFileManager, tSavedURL, nothing)
+         --   end if
+         --   ObjC_NSFileManagerMoveItemAtURL(tFileManager, pLocation, tSavedURL, nothing)
+         --   variable tSavedPath as String
+         --   put ObjC_NSStringUTF8String(ObjC_NSURLPath(tSavedURL)) into tSavedPath
+         */
+
       end unsafe
-      put StringFromNSString( tNSStringObj ) into tStr
-      log tStr
-      post "urlDownloadTaskFinished" to sTarget with [tStr]
-    -- end unsafe
+      -- post "urlDownloadFinished"  to sTarget with [tSavedPath]
+      post "urlDownloadTaskFinished" to sTarget with [tLeafNameStr,tTempFilePath]
 end handler
 
 variable sDownloadCompleteCallbackPtr as optional ObjcBlockPointer
@@ -177,16 +204,16 @@ public handler DownloadFileFromURL(in pURL as String, in pSavePath as String ) r
     --  put ObjC_NSURLSessionTaskState(mTask) into tState
      -- log tState -- should be 1 meaning it's not doing anything yet
       /*   STATE Enum
-      = 0, NSURLSessionTaskStateRunning The task is currently being serviced by the session
-      = 1, NSURLSessionTaskStateSuspended task object is not doing anything yet or is paused
-      = 2, NSURLSessionTaskStateCanceling The task has been told to cancel. The session will receive a URLSession:task:didCompleteWithError: message.
-      = 3, NSURLSessionTaskStateCompleted The task has completed and the session will receive no more delegate notifications
-      -- AVAILABLE macos(10.9), ios(7.0), watchos(2.0), tvos(9.0)
+         = 0, NSURLSessionTaskStateRunning The task is currently being serviced by the session
+         = 1, NSURLSessionTaskStateSuspended task object is not doing anything yet or is paused
+         = 2, NSURLSessionTaskStateCanceling The task has been told to cancel. The session will receive a URLSession:task:didCompleteWithError: message.
+         = 3, NSURLSessionTaskStateCompleted The task has completed and the session will receive no more delegate notifications
+         -- AVAILABLE macos(10.9), ios(7.0), watchos(2.0), tvos(9.0)
       */
       ObjC_NSURLSessionTaskResume(mTask)
       /*
-      put ObjC_NSURLSessionTaskGetPriority(mTask) into tNSURLSessionTaskPriority
-      log ["tNSURLSessionTaskPriority", tNSURLSessionTaskPriority]
+         put ObjC_NSURLSessionTaskGetPriority(mTask) into tNSURLSessionTaskPriority
+         log ["tNSURLSessionTaskPriority", tNSURLSessionTaskPriority]
       */
       put ObjC_NSURLSessionTaskCountOfBytesExpectedToReceive(mTask) into tExpectedBytes
       put ObjC_NSURLSessionTaskCountOfBytesReceived(mTask) into tBytesReceived
@@ -216,9 +243,7 @@ public handler checkProgress() returns nothing
          put ObjC_NSURLSessionTaskState(mTask) into tState
          log tState -- should be 0 for currently running task
          -- 3 means that the task finished but does NOT mean that data transfer was successful
-
          -- currentRequest
-
          -- put ObjC_NSURLSessionTaskProgress(mTask) into tProgressObj -- NSProgess class obj -- works fine but not particularly useful info
          --  LogNSObjectReflection(tProgressObj)
 		end unsafe
