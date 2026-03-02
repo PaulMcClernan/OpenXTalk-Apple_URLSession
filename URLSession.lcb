@@ -162,6 +162,7 @@ public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation a
 
          -- (get the NSURL for the downloiaded file in temp folder here)
          --- move the file to final destination
+
          /* Generative AI code still needs checking ---
          -- variable tDocsURL as ObjcId
          -- put ObjC_NSArrayFirstObject( ObjC_NSFileManagerURLsForDirectoryInDomains(tFileManager, kNSDocumentDirectory, kNSUserDomainMask) ) into tDocsURL
@@ -176,7 +177,6 @@ public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation a
          */
 
       end unsafe
-      -- post "urlDownloadFinished"  to sTarget with [tSavedPath]
       post "urlDownloadTaskFinished" to sTarget with [tLeafNameStr,tTempFilePath]
 end handler
 
@@ -426,11 +426,14 @@ end handler
 
 end library
 
--- Callbacks Posted to Script Object
+-- For callbacks to library modules we get need to get the calling ScriptObject to post messages to
 -- private variable sTarget as ScriptObject
 --	put the caller into sTarget
+-- For posting messages from Widget modules we can use the syntax:
+-- put my script object into sTarget -- a reference to self, the widget control on a card.
 
--- urlDownloadFinished savedPath -- File moved to Documents successfully
+
+-- urlDownloadFinished savedPath -- File downloaded to temp file successfully
 -- urlDownloadFailed errorDescription -- Any error — network, HTTP status, or response type
 
 /**
