@@ -100,6 +100,14 @@ public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation a
    variable tTempFileSize as Int64
    variable tExpectedLength as Int64
 
+   ---- dump log of the incoming objects first
+   log "--- pLocation:"
+   LogNSObjectReflection(pLocation)
+   log "---- pResponse:"
+   LogNSObjectReflection( pResponse )
+   log "---- pError:"
+   LogNSObjectReflection( pError )
+
    if pError is not nothing then
       variable tErrorDesc as ObjcId
       variable tErrorStr as String
@@ -123,12 +131,6 @@ public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation a
          return
       end if
       */
-      log "--- pLocation:\n"
-      LogNSObjectReflection(pLocation)
-      log "\n"
-      log "---- pResponse:\n"
-      LogNSObjectReflection( pResponse )
-
       variable tStatus as CULong
       unsafe
         put ObjC_NSHTTPURLResponseStatusCode( pResponse ) into tStatus
@@ -148,12 +150,13 @@ public handler DownloadComplete( in pContext as ObjcBlockPointer, in pLocation a
          log [ "expectedLength", tExpectedLength ]
          put StringFromNSString( objC_NSURLGetPath( pLocation ) ) into tTempFilePath
          log ["tempFilePath",tTempFilePath]
+
          -- if tTempFilePath is not the empty string then
          --     put ObjC_NSFileManagerDefaultFileManager() into tFileManager
          --     put ObjC_NSFileManagerSizeOfFileAtPath( tFileManager, StringToNSString( tTempFilePath ) ) into tTempFileSize
          --    --  log ["tempFileSize", tTempFileSize]
          --  end if
-         
+
          --put ObjC_NSURLLength( pLocation ) into tBytesReceived
          --- log [ "tBytesReceived", tBytesReceived ]
 
